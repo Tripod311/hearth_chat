@@ -1,0 +1,34 @@
+{
+  "name": "hearthchat",
+  "version": "0.0.0",
+  "description": "Decentralized microsociety chat engine",
+  "keywords": [
+    "typescript",
+    "chat"
+  ],
+  "license": "ISC",
+  "author": "Tripod ind.tripod@gmail.com",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@tripod311/currents": "^0.0.5",
+    "@tripod311/dispatch": "^0.0.9",
+    "@tripod311/flow": "^0.0.1",
+    "@tripod311/pump": "^0.0.0",
+    "@tripod311/splash": "^0.0.11",
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.3.0",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
+    "mediasoup": "^3.19.17",
+    "mediasoup-client": "^3.18.7",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
