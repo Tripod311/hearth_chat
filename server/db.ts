@@ -25,7 +25,8 @@ export default class DB extends Node {
 				password CHAR(60),
 
 				is_admin INTEGER NOT NULL DEFAULT 0,
-				is_bot INTEGER NOT NULL DEFAULT 0
+				is_bot INTEGER NOT NULL DEFAULT 0,
+				last_login INTEGER
 			);`);
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS actors (
@@ -421,11 +422,83 @@ export default class DB extends Node {
 	// chat
 
 	fetchMessages (event: Event) {
+		try {
+			let rows: Record<string, any>[];
 
+			if (event.data.data.message_id) {
+				rows = this.db.prepare(`SELECT
+					messages.content,
+					messages.attachments,
+					messages.created_at,
+					actors.display_name,
+					actors.image_path
+					FROM messages LEFT JOIN actors ON messages.actor_id=actors.id
+					WHERE topic_id = ?
+					AND messages.id < event.data.data.message_id,
+					ORDER BY messages.id DESC
+					LIMIT ?
+				`).all([event.data.data.topic, event.data.data.limit]);
+			} else {
+				rows = this.db.prepare(`SELECT
+					messages.content,
+					messages.attachments,
+					messages.created_at,
+					actors.display_name,
+					actors.image_path
+					FROM messages LEFT JOIN actors ON messages.actor_id=actors.id
+					WHERE topic_id = ?
+					ORDER BY messages.id DESC
+					LIMIT ?
+				`).all([event.data.data.topic, event.data.data.limit]);
+			}
+
+			event.response({
+				command: "fetchMessagesResponse",
+				error: false,
+				data: { rows: rows }
+			});
+		} catch (err: any) {
+			event.response({
+				command: "fetchMessagesResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
 	}
 
 	pushMessage (event: Event) {
+		try {
+			this.db.prepare(`INSERT INTO messages (
+				content,
+				attachments,
+				created_at,
+				actor_id,
+				topic_id
+			) VALUES (
+				?,
+				?,
+				?,
+				?,
+				?
+			);`).run([
+				event.data.data.content,
+				event.data.data.attachments,
+				event.data.data.created_at,
+				event.data.data.actor_id,
+				event.data.data.topic_id
+			]);
 
+			event.response({
+				command: "pushMessageResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "pushMessageResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
 	}
 
 	// related
