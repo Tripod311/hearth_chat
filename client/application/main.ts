@@ -2,6 +2,7 @@ import { Component } from "@tripod311/splash"
 import View from "./main.html?raw"
 
 import MenuIcon from "../icons/menu.svg"
+import Model from "../model/main.js"
 
 import Navigation from "./navigation/navigation.js"
 import TitlePage from "./pages/title/title.js"
@@ -15,7 +16,7 @@ export default class Application extends Component {
 	mounted () {
 		super.mounted();
 
-		this.state.setProp("nodeTitle", "HeⒶrthChat");
+		this.state.on("page", this.verify.bind(this));
 
 		this.refs.navButton.src = MenuIcon;
 		this.refs.navButton.onclick = this.toggleNav.bind(this);
@@ -24,7 +25,17 @@ export default class Application extends Component {
 		this.refs.navCurtain.style.transition = "background 0.3s";
 		this.slots.navigation.push(new Navigation({}));
 
-		this.setPage();
+		this.verify();
+	}
+
+	async verify () {
+		const result = await Model.getPipe("api.user.verify").run();
+
+		if (result.error) {
+			Model.getPipe("router").run("auth");
+		} else {
+			this.setPage(this.state.getProp("page"));
+		}
 	}
 
 	toggleNav () {

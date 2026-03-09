@@ -6,17 +6,19 @@ import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 
 export default class DB extends Node {
 	private db: Database.Database;
+	private node_id: string;
 
 	constructor () {
 		super();
 
-		FS.mkdirSync("./data", { recursive: true });
+		FS.mkdirSync("./data/files", { recursive: true });
 
 		const doSetupRoutine = !FS.existsSync("./data/database.sqlite");
 
 		this.db = new Database("./data/database.sqlite");
 		this.db.pragma("foreign_keys = ON");
 		this.db.pragma("journal_mode = WAL");
+		this.db.pragma("busy_timeout = 5000");
 
 		if (doSetupRoutine) {
 			this.db.exec(`CREATE TABLE IF NOT EXISTS users (
@@ -118,15 +120,32 @@ export default class DB extends Node {
 
 			const nodeId = crypto.randomUUID();
 
-			this.db.exec(`UPDATE settings SET
-					uuid=${nodeId},
-					name='HearthChat Node',
-					description='Fresh node',
-					title_page='[]'
-			`);
+			this.db.prepare(`INSERT INTO settings (uuid, name, description, title_page) VALUES (
+					?,
+					'HearthChat Node',
+					'Fresh node',
+					'[]'
+			);`).run([nodeId]);
+			this.createRootUser();
+
+			this.node_id = nodeId;
+		} else {
+			const row = this.db.prepare("SELECT uuid FROM settings WHERE id=1").get() as { uuid: string };
+
+			this.node_id = row.uuid;
 		}
 
 		Log.success("Database initialized", 0)
+	}
+
+	async createRootUser () {
+		const login = "root";
+		const password = "root";
+
+		const hash = await bcrypt.hash(password, 10);
+
+		const info = this.db.prepare(`INSERT INTO users (login, password, is_admin, last_login) VALUES (?, ?, 1, ?)`).run([login, hash, Math.floor(Date.now() / 1000)]);
+		this.db.prepare(`INSERT INTO actors (node_user_id, display_name) VALUES (?, ?)`).run([info.lastInsertRowid, login]);
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -135,6 +154,7 @@ export default class DB extends Node {
 		this.setListener("addUser", this.addUser.bind(this));
 		this.setListener("updateUser", this.updateUser.bind(this));
 		this.setListener("deleteUser", this.deleteUser.bind(this));
+		this.setListener("authUser", this.authUser.bind(this));
 		this.setListener("addActor", this.addActor.bind(this));
 		this.setListener("banActor", this.banActor.bind(this));
 		this.setListener("unbanActor", this.unbanActor.bind(this));
@@ -154,6 +174,10 @@ export default class DB extends Node {
 		super.detach();
 	}
 
+	get uuid () {
+		return this.node_id;
+	}
+
 	// users
 
 	async addUser (event: Event) {
@@ -163,7 +187,7 @@ export default class DB extends Node {
 
 			const hash = await bcrypt.hash(password, 10);
 
-			const info = this.db.prepare(`INSERT INTO users (login, password) VALUES (?, ?)`).run([login, password]);
+			const info = this.db.prepare(`INSERT INTO users (login, password) VALUES (?, ?)`).run([login, hash]);
 			this.db.prepare(`INSERT INTO actors (node_user_id, display_name) VALUES (?, ?)`).run([info.lastInsertRowid, login]);
 
 			event.response({
@@ -185,7 +209,7 @@ export default class DB extends Node {
 	async updateUser (event: Event) {
 		try {
 			const params: any[] = [];
-			let sql: stirng = "UPDATE users SET is_admin=?, is_bot=? WHERE id=?";
+			let sql: string = "UPDATE users SET is_admin=?, is_bot=? WHERE id=?";
 
 			if (event.data.data.password) {
 				const hash = await bcrypt.hash(event.data.data.password, 10);
@@ -251,6 +275,34 @@ export default class DB extends Node {
 				error: true,
 				details: err.toString()
 			});
+		}
+	}
+
+	async authUser (event: Event) {
+		try {
+			const userRow = this.db.prepare("SELECT password, is_admin, is_bot FROM users WHERE login=?").get([ event.data.data.login ]) as { password: string; is_admin: boolean; is_bot: boolean; };
+
+			if (!userRow) throw new Error("User not found");
+
+			const result = await bcrypt.compare(event.data.data.password, userRow.password);
+
+			if (!result) throw new Error("Wrong password");
+
+			event.response({
+				command: "authUserResponse",
+				error: false,
+				data: {
+					login: event.data.data.login,
+					is_admin: userRow.is_admin,
+					is_bot: userRow.is_bot
+				}
+			});
+		} catch (err: any) {
+			event.response({
+				command: "authUserResponse",
+				error: true,
+				details: err.message || err.toString()
+			})
 		}
 	}
 
@@ -423,7 +475,7 @@ export default class DB extends Node {
 
 	fetchMessages (event: Event) {
 		try {
-			let rows: Record<string, any>[];
+			let rows: any[];
 
 			if (event.data.data.message_id) {
 				rows = this.db.prepare(`SELECT
@@ -536,7 +588,7 @@ export default class DB extends Node {
 
 	confirmRelated (event: Event) {
 		try {
-			const row = this.db.prepare(`SELECT uuid, url FROM pending_related WHERE id=?`).get([event.data.data.id]);
+			const row = this.db.prepare(`SELECT uuid, url FROM pending_related WHERE id=?`).get([event.data.data.id]) as { uuid: string; url: string; };
 
 			if (!row) throw new Error("Request not found");
 
@@ -560,7 +612,7 @@ export default class DB extends Node {
 		try {
 			const info = this.db.prepare(`UPDATE related SET title=?, description=?, is_visible=? WHERE id=?`).run([event.data.data.title, event.data.data.description, event.data.data.is_visible, event.data.data.id]);
 
-			if (info.changed === 0) throw new Error("Related node not found");
+			if (info.changes === 0) throw new Error("Related node not found");
 
 			event.response({
 				command: "updateRelatedResponse",
@@ -577,7 +629,7 @@ export default class DB extends Node {
 
 	deleteRelated (event: Event) {
 		try {
-			const row = this.db.prepare(`SELECT uuid FROM related WHERE id=?`).get([event.data.data.id]);
+			const row = this.db.prepare(`SELECT uuid FROM related WHERE id=?`).get([event.data.data.id]) as { uuid: string };
 
 			if (!row) throw new Error("Related node not found");
 

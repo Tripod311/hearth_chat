@@ -3,6 +3,7 @@ import { Node, Dispatcher, Address, Event } from "@tripod311/dispatch"
 
 import DB from "./db.js"
 import API from "./api.js"
+import Access from "./access.js"
 
 let Config: ApplicationConfig;
 
@@ -27,12 +28,14 @@ try {
 export default class Root extends Node {
 	private db: DB;
 	private api: API;
+	private access: Access;
 
 	constructor () {
 		super();
 
 		this.db = new DB();
-		this.api = new API(Config.http_port, Config.http_certificates);
+		this.api = new API(Config.http_port, Config.http_certificates, this.db.uuid);
+		this.access = new Access();
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -40,5 +43,6 @@ export default class Root extends Node {
 
 		this.addChild("db", this.db);
 		this.addChild("api", this.api);
+		this.addChild("access", this.access);
 	}
 }

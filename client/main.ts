@@ -98,15 +98,15 @@ function fallback () {
 
 router.add("/", redirectToTitle);
 router.add("/:proxy/title", renderTitle);
-router.add("/:proxy/account", renderAccountInfo);
 router.add("/:proxy/topic/:topicId", renderTopic);
+router.add("/:proxy/account", renderAccountInfo);
 router.add("/:proxy/admin", renderAdmin);
 router.add("/auth", renderAuth);
 
 router.setFallback(fallback);
 
 const navigatePipe = new SyncFunctionPipe<string, undefined>((path: string) => {
-	router.navigate('/' + path);
+	router.navigate('/' + path, true);
 });
 Model.addPipe("router", navigatePipe);
 
