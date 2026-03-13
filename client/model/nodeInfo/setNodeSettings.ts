@@ -1,19 +1,23 @@
 import { AsyncFunctionPipe } from "@tripod311/pump"
 
 interface Input {
-	login: string;
-	password: string;
+	name: string;
+	description: string;
+	title_page: string;
+	http_port: number;
+	gate_port: number;
 }
 
 interface Output {
 	error: boolean;
 	details?: string;
-	userInfo: { login: string; is_admin: boolean; is_bot: boolean; };
 }
 
-const LoginRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
+const SetNodeSettingsRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/login", {
+		const nodeId = window.location.pathname.split('/')[1];
+
+		const response = await fetch(window.location.origin + "/api/nodeSettings", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -26,8 +30,7 @@ const LoginRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) =
 		if (data.error) throw new Error(data.details);
 
 		return {
-			error: false,
-			userInfo: data.userInfo
+			error: false
 		}
 	} catch (err: any) {
 		return {
@@ -37,4 +40,4 @@ const LoginRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) =
 	}
 });
 
-export default LoginRequest
+export default SetNodeSettingsRequest

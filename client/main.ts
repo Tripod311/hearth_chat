@@ -93,20 +93,20 @@ function renderAuth () {
 }
 
 function fallback () {
-	Model.getPipe("router").run("");
+	Model.getPipe("router").run("self/title");
 }
 
 router.add("/", redirectToTitle);
 router.add("/:proxy/title", renderTitle);
 router.add("/:proxy/topic/:topicId", renderTopic);
-router.add("/:proxy/account", renderAccountInfo);
-router.add("/:proxy/admin", renderAdmin);
+router.add("/account", renderAccountInfo);
+router.add("/admin", renderAdmin);
 router.add("/auth", renderAuth);
 
 router.setFallback(fallback);
 
 const navigatePipe = new SyncFunctionPipe<string, undefined>((path: string) => {
-	router.navigate('/' + path, true);
+	router.navigate('/' + path);
 });
 Model.addPipe("router", navigatePipe);
 

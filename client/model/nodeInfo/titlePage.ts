@@ -3,16 +3,21 @@ import { AsyncFunctionPipe } from "@tripod311/pump"
 interface Output {
 	error: boolean;
 	details?: string;
-	userInfo: { login: string; is_admin: boolean; is_bot:boolean; };
+	data: any[];
 }
 
-const VerifyRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const TitlePageRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 	try {
-		const response = await fetch(window.location.origin + "/api/verify", {
+		const nodeId = window.location.pathname.split('/')[1];
+
+		const response = await fetch(window.location.origin + "/api/titlePage", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
-			}
+			},
+			body: JSON.stringify({
+				nodeId: nodeId
+			})
 		});
 
 		const data = await response.json();
@@ -21,7 +26,7 @@ const VerifyRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 
 		return {
 			error: false,
-			userInfo: data.userInfo
+			data: data.data
 		}
 	} catch (err: any) {
 		return {
@@ -31,4 +36,4 @@ const VerifyRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 	}
 });
 
-export default VerifyRequest
+export default TitlePageRequest

@@ -1,6 +1,8 @@
 import { Component, TemplateCache } from "@tripod311/splash"
 import View from "./title.html?raw"
 
+import Model from "../../../model/main.js"
+
 import TextBlock from "./blocks/text.html?raw"
 import ImageBlock from "./blocks/image.html?raw"
 import DividerBlock from "./blocks/divider.html?raw"
@@ -27,50 +29,69 @@ export default class TitlePage extends Component {
 
 		// fetch title page content from server
 
-		const titlePageContent: BlockDescription[] = [
-			{
-				type: "text",
-				data: {
-					title: "HearthChat node",
-					text: "Example of HearthChat node"
-				}
-			},
-			{
-				type: "image",
-				data: {
-					src: "",
-					alt: "",
-					caption: "Some image"
-				}
-			},
-			{
-				type: "refs",
-				data: [
-					{
-						link: "",
-						title: "Chatterbox",
-						description: "Introduce yourself"
-					},
-					{
-						link: "",
-						title: "Max'x node",
-						description: "Meet my brother"
-					}
-				]
-			},
-			{
-				type: "divider"
-			},
-			{
-				type: "custom",
-				data: {
-					content: `<span class="text-4xl">DICK</div>`
-				}
-			}
-		];
+		// const titlePageContent: BlockDescription[] = [
+		// 	{
+		// 		type: "text",
+		// 		data: {
+		// 			title: "HearthChat node",
+		// 			text: "Example of HearthChat node"
+		// 		}
+		// 	},
+		// 	{
+		// 		type: "image",
+		// 		data: {
+		// 			src: "",
+		// 			alt: "",
+		// 			caption: "Some image"
+		// 		}
+		// 	},
+		// 	{
+		// 		type: "refs",
+		// 		data: [
+		// 			{
+		// 				link: "",
+		// 				title: "Chatterbox",
+		// 				description: "Introduce yourself"
+		// 			},
+		// 			{
+		// 				link: "",
+		// 				title: "Max'x node",
+		// 				description: "Meet my brother"
+		// 			}
+		// 		]
+		// 	},
+		// 	{
+		// 		type: "divider"
+		// 	},
+		// 	{
+		// 		type: "custom",
+		// 		data: {
+		// 			content: `<span class="text-4xl">DICK</div>`
+		// 		}
+		// 	}
+		// ];
 
-		for (const block of titlePageContent) {
-			this.slots.blocks.push(TitlePage.createBlock(block));
+		this.renderPage();
+	}
+
+	async renderPage () {
+		const spinner = Model.getPipe("modals.createSpinner").run();
+		Model.getPipe("modals.showDialog").run(spinner);
+
+		const response = await Model.getPipe("api.nodeInfo.titlePage").run();
+
+		spinner.emit("close");
+
+		if (response.error) {
+			const notification = Model.getPipe("modals.createNotification").run({
+				message: response.details,
+				buttonValue: "Ok"
+			});
+			Model.getPipe("modals.showDialog").run(notification);
+		} else {
+			for (const block of response.data) {
+				this.slots.blocks.push(TitlePage.createBlock(block as BlockDescription));
+			}
 		}
 	}
 

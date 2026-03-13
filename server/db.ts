@@ -7,6 +7,8 @@ import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 export default class DB extends Node {
 	private db: Database.Database;
 	private node_id: string;
+	private gate_port: number;
+	private http_port: number;
 
 	constructor () {
 		super();
@@ -28,7 +30,8 @@ export default class DB extends Node {
 
 				is_admin INTEGER NOT NULL DEFAULT 0,
 				is_bot INTEGER NOT NULL DEFAULT 0,
-				last_login INTEGER
+				last_login INTEGER,
+				quick_files TEXT
 			);`);
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS actors (
@@ -68,6 +71,8 @@ export default class DB extends Node {
 
 				uuid TEXT,
 				name VARCHAR(300),
+				http_port INTEGER,
+				gate_port INTEGER,
 				description TEXT,
 				title_page TEXT
 			);`);
@@ -88,6 +93,7 @@ export default class DB extends Node {
 				title VARCHAR(300),
 				description TEXT,
 
+				direct INTEGER DEFAULT 0,
 				is_visible INTEGER NOT NULL DEFAULT 1,
 				is_alive INTEGER NOT NULL DEFAULT 0,
 				created_at INTEGER NOT NULL
@@ -120,8 +126,10 @@ export default class DB extends Node {
 
 			const nodeId = crypto.randomUUID();
 
-			this.db.prepare(`INSERT INTO settings (uuid, name, description, title_page) VALUES (
+			this.db.prepare(`INSERT INTO settings (uuid, http_port, gate_port, name, description, title_page) VALUES (
 					?,
+					8080,
+					14567,
 					'HearthChat Node',
 					'Fresh node',
 					'[]'
@@ -129,10 +137,14 @@ export default class DB extends Node {
 			this.createRootUser();
 
 			this.node_id = nodeId;
+			this.gate_port = 14567;
+			this.http_port = 8080;
 		} else {
-			const row = this.db.prepare("SELECT uuid FROM settings WHERE id=1").get() as { uuid: string };
+			const row = this.db.prepare("SELECT uuid, http_port, gate_port FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; };
 
 			this.node_id = row.uuid;
+			this.gate_port = row.gate_port;
+			this.http_port = row.http_port;
 		}
 
 		Log.success("Database initialized", 0)
@@ -151,10 +163,6 @@ export default class DB extends Node {
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		this.setListener("addUser", this.addUser.bind(this));
-		this.setListener("updateUser", this.updateUser.bind(this));
-		this.setListener("deleteUser", this.deleteUser.bind(this));
-		this.setListener("authUser", this.authUser.bind(this));
 		this.setListener("addActor", this.addActor.bind(this));
 		this.setListener("banActor", this.banActor.bind(this));
 		this.setListener("unbanActor", this.unbanActor.bind(this));
@@ -166,6 +174,14 @@ export default class DB extends Node {
 		this.setListener("confirmRelated", this.confirmRelated.bind(this));
 		this.setListener("updateRelated", this.updateRelated.bind(this));
 		this.setListener("deleteRelated", this.deleteRelated.bind(this));
+
+		this.setListener("addUser", this.addUser.bind(this));
+		this.setListener("updateUser", this.updateUser.bind(this));
+		this.setListener("deleteUser", this.deleteUser.bind(this));
+		this.setListener("authUser", this.authUser.bind(this));
+		this.setListener("fetchTitle", this.fetchTitle.bind(this));
+		this.setListener("getNodeSettings", this.getNodeSettings.bind(this));
+		this.setListener("setNodeSettings", this.setNodeSettings.bind(this));
 	}
 
 	detach () {
@@ -176,6 +192,14 @@ export default class DB extends Node {
 
 	get uuid () {
 		return this.node_id;
+	}
+
+	get gatePort () {
+		return this.gate_port;
+	}
+
+	get httpPort () {
+		return this.http_port;
 	}
 
 	// users
@@ -283,6 +307,8 @@ export default class DB extends Node {
 			const userRow = this.db.prepare("SELECT password, is_admin, is_bot FROM users WHERE login=?").get([ event.data.data.login ]) as { password: string; is_admin: boolean; is_bot: boolean; };
 
 			if (!userRow) throw new Error("User not found");
+
+			this.db.prepare("UPDATE users SET last_login=? WHERE login=?").run([Math.floor(Date.now()/1000), event.data.data.login]);
 
 			const result = await bcrypt.compare(event.data.data.password, userRow.password);
 
@@ -644,6 +670,65 @@ export default class DB extends Node {
 		} catch (err: any) {
 			event.response({
 				command: "deleteRelatedResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	fetchTitle (event: Event) {
+		try {
+			const row = this.db.prepare(`SELECT title_page FROM settings WHERE id=1`).get([]) as { title_page: string };
+
+			event.response({
+				command: "fetchTitleResponse",
+				error: false,
+				data: JSON.parse(row.title_page)
+			});
+		} catch (err: any) {
+			event.response({
+				command: "fetchTitleResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	getNodeSettings (event: Event) {
+		try {
+			const row = this.db.prepare(`SELECT * FROM settings WHERE id=1`).get([]);
+
+			event.response({
+				command: "getNodeSettingsResponse",
+				error: false,
+				data: row
+			});
+		} catch (err: any) {
+			event.response({
+				command: "getNodeSettingsResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	setNodeSettings (event: Event) {
+		try {
+			const row = this.db.prepare(`UPDATE settings SET name=?, description=?, title_page=?, http_port=?, gate_port=? WHERE id=1`).run([
+				event.data.data.name,
+				event.data.data.description,
+				event.data.data.title_page,
+				event.data.data.http_port,
+				event.data.data.gate_port
+			]);
+
+			event.response({
+				command: "setNodeSettingsResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "setNodeSettingsResponse",
 				error: true,
 				details: err.toString()
 			});

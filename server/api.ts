@@ -11,12 +11,15 @@ export default class API extends Node {
 
 	private accessAddress!: Address;
 	private dbAddress!: Address;
+	private gateAddress!: Address;
 
-	constructor (port: number, certificates: ApplicationConfig["http_certificates"], uuid: string) {
+	constructor (port: number, uuid: string) {
 		super();
 
 		this.uuid = uuid;
 		this.port = port;
+
+		let certificates: { key: string; cert: string; ca?: string; } | undefined;
 
 		this.instance = Currents.fromOptions({
 			certificates: certificates
@@ -49,7 +52,6 @@ export default class API extends Node {
 
 		this.instance.get('/files/*', this.baseChain
 			.concat([
-				this.verify.bind(this),
 				ServeStatic({
 					basePath: "/",
 					rootDir: path.join(process.cwd(), 'data/files'),
@@ -61,7 +63,7 @@ export default class API extends Node {
 		this.instance.post("/api/verify", this.baseChain.concat([
 			this.verify.bind(this),
 			async (ctx: Context) => {
-				ctx.status(200).json({ error: false });
+				ctx.status(200).json({ error: false, userInfo: ctx.locals.userInfo });
 			}
 		]));
 		this.instance.post("/api/login", this.baseChain.concat([
@@ -70,6 +72,23 @@ export default class API extends Node {
 		]));
 		this.instance.post("/api/logout", this.baseChain.concat([
 			this.logout.bind(this)
+		]));
+
+		this.instance.post("/api/titlePage", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.fetchTitlePage.bind(this)
+		]));
+
+		this.instance.get("/api/nodeSettings", this.baseChain.concat([
+			this.verify.bind(this),
+			this.getNodeSettings.bind(this)
+		]));
+
+		this.instance.post("/api/nodeSettings", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.setNodeSettings.bind(this)
 		]));
 	}
 
@@ -80,8 +99,11 @@ export default class API extends Node {
 		access.push("access");
 		const db = this.address!.parent.data;
 		db.push("db");
+		const gate = this.address!.parent.data;
+		gate.push("gate");
 		this.accessAddress = new Address(access);
 		this.dbAddress = new Address(db);
+		this.gateAddress = new Address(gate);
 
 		this.instance.server.listen(this.port, () => {
 			Log.success("Node listening on " + this.port, 0);
@@ -112,12 +134,12 @@ export default class API extends Node {
 						if (accessResponse.data.error) {
 							ctx.status(500).json({ error: true, details: "Internal error: " + accessResponse.data.details });
 						} else {
-							SetCookie(ctx, "hearthchat_token", accessResponse.data.data.refresh_token, {
+							SetCookie(ctx, "hearthchat_token", accessResponse.data.data.token, {
 								httpOnly: true,
 								sameSite: "Strict",
 								maxAge: 60 * 60 * 24
 							});
-							ctx.status(200).json({ error: false, data: { name: ctx.body.login, is_admin: dbResponse.data.data.is_admin }});
+							ctx.status(200).json({ error: false, data: { login: ctx.body.login, is_admin: dbResponse.data.data.is_admin, is_bot: dbResponse.data.data.is_bot }});
 						}
 
 						resolve();
@@ -149,20 +171,90 @@ export default class API extends Node {
 			}, (response: Event) => {
 				if (response.data.error) {
 					ctx.status(403).json({ error: true, details: "Access forbidden" });
-				}
+				} else {
+					if (response.data.data.refreshToken) {
+						SetCookie(ctx, "hearthchat_token", response.data.data.refreshToken, {
+							httpOnly: true,
+							sameSite: "Strict",
+							maxAge: 60 * 60 * 24
+						});
+					}
 
-				if (response.data.data.refreshToken) {
-					SetCookie(ctx, "hearthchat_token", response.data.data.refreshToken, {
-						httpOnly: true,
-						sameSite: "Strict",
-						maxAge: 60 * 60 * 24
-					});
+					ctx.locals.userInfo = response.data.data.payload;
 				}
-
-				ctx.locals.userInfo = response.data.data.payload;
 
 				resolve();
 			})
+		});
+	}
+
+	fetchTitlePage (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const nodeId = ctx.body.nodeId;
+
+			if (nodeId === "self") {
+				this.chain(this.dbAddress, {
+					command: "fetchTitle",
+					data: {}
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(404).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			} else {
+				this.chain(this.gateAddress, {
+					command: "fetchTitle",
+					data: {
+						nodeId: nodeId
+					}
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(404).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	getNodeSettings (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "getNodeSettings",
+					data: {}
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	setNodeSettings (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "setNodeSettings",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false });
+					}
+				});
+			}
 		});
 	}
 }
