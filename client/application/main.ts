@@ -8,10 +8,12 @@ import Model from "../model/main.js"
 import Modals from "../modals/modals.js"
 import SpinnerDialog from "../modals/dialogs/spinnerDialog.js"
 import NotificationDialog from "../modals/dialogs/notificationDialog.js"
+import PromptDialog from "../modals/dialogs/promptDialog.js"
 
 import Navigation from "./navigation/navigation.js"
 import TitlePage from "./pages/title/title.js"
 import AdminPage from "./pages/admin/admin.js"
+import AccountPage from "./pages/account/account.js"
 
 export default class Application extends Component {
 	protected static componentName = "Dashboard";
@@ -65,10 +67,12 @@ export default class Application extends Component {
 				Model.addPipe("modals", modalsPipe);
 				const createSpinnerPipe = new SyncFunctionPipe<undefined, Component>(this.createSpinner.bind(this));
 				const createNotificationPipe = new SyncFunctionPipe<{ message: string; buttonValue: string; callback?: Function; }, Component>(this.createNotification.bind(this));
+				const createPromptPipe = new SyncFunctionPipe<{ message: string; callback?: Function; }, Component>(this.createPrompt.bind(this));
 				const showDialogPipe = new SyncFunctionPipe<Component, number>(this.modals.showDialog.bind(this.modals));
 				const closeDialogPipe = new SyncFunctionPipe<number, undefined>(this.modals.closeDialog.bind(this.modals));
 				modalsPipe.addPipe("createSpinner", createSpinnerPipe);
 				modalsPipe.addPipe("createNotification", createNotificationPipe);
+				modalsPipe.addPipe("createPrompt", createPromptPipe);
 				modalsPipe.addPipe("showDialog", showDialogPipe);
 				modalsPipe.addPipe("closeDialog", closeDialogPipe);
 			}
@@ -105,6 +109,9 @@ export default class Application extends Component {
 			case "admin":
 				this.slots.content.push(new AdminPage({}));
 				break;
+			case "account":
+				this.slots.content.push(new AccountPage({}));
+				break;
 		}
 	}
 
@@ -122,6 +129,13 @@ export default class Application extends Component {
 		return new NotificationDialog({
 			message: input.message,
 			buttonValue: input.buttonValue,
+			callback: input.callback
+		});
+	}
+
+	private createPrompt (input: { message: string; callback?: Function; }) {
+		return new PromptDialog({
+			message: input.message,
 			callback: input.callback
 		});
 	}

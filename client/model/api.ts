@@ -3,6 +3,19 @@ import { Pump, Pipe } from "@tripod311/pump"
 import LoginRequest from "./user/login.js"
 import LogoutRequest from "./user/logout.js"
 import VerifyRequest from "./user/verify.js"
+import GetUsersRequest from "./user/getUsers.js"
+import SetPasswordRequest from "./user/setPassword.js"
+import AddUserRequest from "./user/addUser.js"
+import DeleteUserRequest from "./user/deleteUser.js"
+import EditUserRequest from "./user/editUser.js"
+import CreateInviteRequest from "./user/createInvite.js"
+import AcceptInviteRequest from "./user/acceptInvite.js"
+
+import MyTopicsRequest from "./topic/myTopics.js"
+import CreateTopicRequest from "./topic/create.js"
+import DeleteTopicRequest from "./topic/delete.js"
+import UpdateTopicRequest from "./topic/update.js"
+import AllTopicsRequest from "./topic/allTopics.js"
 
 import TitlePageRequest from "./nodeInfo/titlePage.js"
 import GetNodeSettingsRequest from "./nodeInfo/getNodeSettings.js"
@@ -17,6 +30,21 @@ export default function addAPI (model: Pump) {
 	userRoot.addPipe("login", LoginRequest);
 	userRoot.addPipe("logout", LogoutRequest);
 	userRoot.addPipe("verify", VerifyRequest);
+	userRoot.addPipe("getUsers", GetUsersRequest);
+	userRoot.addPipe("setPassword", SetPasswordRequest);
+	userRoot.addPipe("addUser", AddUserRequest);
+	userRoot.addPipe("deleteUser", DeleteUserRequest);
+	userRoot.addPipe("editUser", EditUserRequest);
+	userRoot.addPipe("createInvite", CreateInviteRequest);
+	userRoot.addPipe("acceptInvite", AcceptInviteRequest);
+
+	const topicRoot = new Pipe();
+	root.addPipe("topic", topicRoot);
+	topicRoot.addPipe("myTopics", MyTopicsRequest);
+	topicRoot.addPipe("create", CreateTopicRequest);
+	topicRoot.addPipe("update", UpdateTopicRequest);
+	topicRoot.addPipe("delete", DeleteTopicRequest);
+	topicRoot.addPipe("allTopics", AllTopicsRequest);
 
 	const nodeInfoRoot = new Pipe();
 	root.addPipe("nodeInfo", nodeInfoRoot);

@@ -60,19 +60,65 @@ export default class API extends Node {
 			])
 		);
 
+		// user actions
+
 		this.instance.post("/api/verify", this.baseChain.concat([
 			this.verify.bind(this),
 			async (ctx: Context) => {
 				ctx.status(200).json({ error: false, userInfo: ctx.locals.userInfo });
 			}
 		]));
+
 		this.instance.post("/api/login", this.baseChain.concat([
 			JsonBody,
 			this.login.bind(this)
 		]));
+
 		this.instance.post("/api/logout", this.baseChain.concat([
 			this.logout.bind(this)
 		]));
+
+		this.instance.post("/api/getUsers", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.getUsers.bind(this)
+		]));
+
+		this.instance.post("/api/setPassword", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.setPassword.bind(this)
+		]));
+
+		this.instance.post("/api/addUser", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.addUser.bind(this)
+		]));
+
+		this.instance.post("/api/deleteUser", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.deleteUser.bind(this)
+		]));
+
+		this.instance.post("/api/editUser", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.editUser.bind(this)
+		]));
+
+		this.instance.post("/api/createInvite", this.baseChain.concat([
+			this.verify.bind(this),
+			this.createInvite.bind(this)
+		]));
+
+		this.instance.post("/api/acceptInvite", this.baseChain.concat([
+			JsonBody,
+			this.acceptInvite.bind(this)
+		]));
+
+		// node actions
 
 		this.instance.post("/api/titlePage", this.baseChain.concat([
 			this.verify.bind(this),
@@ -185,6 +231,143 @@ export default class API extends Node {
 
 				resolve();
 			})
+		});
+	}
+
+	getUsers (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "getUsers",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	setPassword (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			let isValidUser = ctx.locals.userInfo.is_admin || ctx.locals.userInfo.login === ctx.body.login;
+
+			if (!isValidUser) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "setPassword",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	addUser (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "addUser",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	deleteUser (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "deleteUser",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	editUser (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				this.chain(this.dbAddress, {
+					command: "editUser",
+					data: ctx.body
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	createInvite (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!ctx.locals.userInfo.is_admin) {
+				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			} else {
+				const inviteAddr = this.address!.parent.data;
+				inviteAddr.push("invites");
+
+				this.chain(inviteAddr, {
+					command: "createInvite",
+					data: {}
+				}, (response: Event) => {
+					if (response.data.error) {
+						ctx.status(500).json({ error: true, details: response.data.details });
+					} else {
+						ctx.status(200).json({ error: false, data: response.data.data });
+					}
+				});
+			}
+		});
+	}
+
+	acceptInvite (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const inviteAddr = this.address!.parent.data;
+			inviteAddr.push("invites");
+
+			this.chain(inviteAddr, {
+				command: "acceptInvite",
+				data: ctx.body
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false });
+				}
+			});
 		});
 	}
 

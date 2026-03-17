@@ -1,6 +1,7 @@
 import { Flow } from "@tripod311/flow"
 import Application from "./application/main.js"
 import Auth from "./auth/main.js"
+import Invite from "./invite/main.js"
 import { SyncFunctionPipe } from "@tripod311/pump"
 import { Component } from "@tripod311/splash"
 import Model from "./model/main.js"
@@ -36,13 +37,13 @@ function renderAccountInfo (params: Record<string, string>) {
 
 		currentComponent = new Application({
 			proxy: params.proxy || "self",
-			page: "accountInfo"
+			page: "account"
 		});
 		currentComponent.mount(root);
 	} else {
 		currentComponent.update({
 			proxy: params.proxy || "self",
-			page: "accountInfo"
+			page: "account"
 		});
 	}
 }
@@ -92,6 +93,15 @@ function renderAuth () {
 	}
 }
 
+function renderInvite (params: Record<string, string>) {
+	if (!(currentComponent instanceof Invite)) {
+		if (currentComponent !== null) currentComponent.unmount();
+
+		currentComponent = new Invite({ inviteId: params.inviteId });
+		currentComponent.mount(root);
+	}
+}
+
 function fallback () {
 	Model.getPipe("router").run("self/title");
 }
@@ -102,6 +112,7 @@ router.add("/:proxy/topic/:topicId", renderTopic);
 router.add("/account", renderAccountInfo);
 router.add("/admin", renderAdmin);
 router.add("/auth", renderAuth);
+router.add("/invite/:inviteId", renderInvite);
 
 router.setFallback(fallback);
 
