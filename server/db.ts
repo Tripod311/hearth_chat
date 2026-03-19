@@ -61,11 +61,9 @@ export default class DB extends Node {
 				title VARCHAR(300) NOT NULL,
 				description TEXT,
 
-				storage_count INTEGER DEFAULT -1,
 				guest_access INTEGER DEFAULT 1,
+				author_write_only INTEGER DEFAULT 0,
 				password CHAR(60),
-
-				created_at INTEGER NOT NULL,
 
 				FOREIGN KEY (creator_id) REFERENCES users(id)
 			);`);
@@ -99,8 +97,7 @@ export default class DB extends Node {
 
 				direct INTEGER DEFAULT 0,
 				is_visible INTEGER NOT NULL DEFAULT 1,
-				is_alive INTEGER NOT NULL DEFAULT 0,
-				created_at INTEGER NOT NULL
+				is_alive INTEGER NOT NULL DEFAULT 0
 			);`);
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS messages (
@@ -173,6 +170,14 @@ export default class DB extends Node {
 		this.setListener("authUser", this.authUser.bind(this));
 		this.setListener("getUsers", this.getUsers.bind(this));
 		this.setListener("setPassword", this.setPassword.bind(this));
+		this.setListener("getDisplayName", this.getDisplayName.bind(this));
+		this.setListener("setDisplayName", this.setDisplayName.bind(this));
+
+		this.setListener("getAllTopics", this.getAllTopics.bind(this));
+		this.setListener("getUserTopics", this.getUserTopics.bind(this));
+		this.setListener("createTopic", this.createTopic.bind(this));
+		this.setListener("updateTopic", this.updateTopic.bind(this));
+		this.setListener("deleteTopic", this.deleteTopic.bind(this));
 
 		this.setListener("fetchTitle", this.fetchTitle.bind(this));
 		this.setListener("getNodeSettings", this.getNodeSettings.bind(this));
@@ -272,11 +277,15 @@ export default class DB extends Node {
 
 	deleteUser (event: Event) {
 		try {
-			const login = event.data.data.login as number;
+			const login = event.data.data.login as string;
 
-			const info = this.db.prepare(`DELETE FROM users WHERE login=?`).run([login]);
+			const row = this.db.prepare(`SELECT id FROM users WHERE login=?`).get([login]) as { id: number };
 
-			if (info.changes === 0) throw new Error("User not found");
+			if (!row) throw new Error("User not found");
+
+			this.db.prepare(`DELETE FROM users WHERE id=?`).run([row.id]);
+			this.db.prepare(`DELETE FROM actors WHERE node_id IS NULL AND node_user_id=?`).run([row.id]);
+			this.db.prepare(`DELETE FROM topics WHERE creator_id=?`).run([row.id]);
 
 			event.response({
 				command: "deleteUserResponse",
@@ -293,7 +302,7 @@ export default class DB extends Node {
 
 	async authUser (event: Event) {
 		try {
-			const userRow = this.db.prepare("SELECT password, is_admin, is_bot FROM users WHERE login=?").get([ event.data.data.login ]) as { password: string; is_admin: boolean; is_bot: boolean; };
+			const userRow = this.db.prepare("SELECT id, password, is_admin, is_bot FROM users WHERE login=?").get([ event.data.data.login ]) as { id: number; password: string; is_admin: boolean; is_bot: boolean; };
 
 			if (!userRow) throw new Error("User not found");
 
@@ -307,6 +316,7 @@ export default class DB extends Node {
 				command: "authUserResponse",
 				error: false,
 				data: {
+					id: userRow.id,
 					login: event.data.data.login,
 					is_admin: userRow.is_admin,
 					is_bot: userRow.is_bot
@@ -346,6 +356,222 @@ export default class DB extends Node {
 				error: true,
 				details: err.toString()
 			});
+		}
+	}
+
+	getDisplayName (event: Event) {
+		try {
+			const row = this.db.prepare(`SELECT
+				display_name
+			FROM actors
+			WHERE node_user_id=? AND node_id IS NULL`).get([event.data.data.id]) as { display_name: string; };
+
+			if (!row) throw new Error("User not found");
+
+			event.response({
+				command: "getDisplayNameResponse",
+				error: false,
+				data: row.display_name
+			});
+		} catch (err: any) {
+			event.response({
+				command: "getDisplayNameResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	setDisplayName (event: Event) {
+		try {
+			const info = this.db.prepare(`UPDATE actors SET display_name = ? WHERE node_id IS NULL AND node_user_id = ?`).run([event.data.data.displayName, event.data.data.id]);
+
+			event.response({
+				command: "setDisplayNameResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "setDisplayNameResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	// topics
+
+	getAllTopics (event: Event) {
+		try {
+			const rows = this.db.prepare(`SELECT
+					topics.id as id,
+					topics.title as title,
+					topics.description as description,
+					topics.guest_access as guest_access,
+					topics.author_write_only as author_write_only,
+					(topics.password IS NOT NULL) as password_protected,
+					actors.display_name as creator
+				FROM topics
+				LEFT JOIN actors ON actors.id = topics.creator_id
+				WHERE topics.creator_id = ? AND actors.node_id IS NULL
+			`).all([event.data.data.id]);
+
+			event.response({
+				command: "getAllTopicsResponse",
+				error: false,
+				data: rows	
+			});
+		} catch (err: any) {
+			event.response({
+				command: "getAllTopicsResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	getUserTopics (event: Event) {
+		try {
+			const rows = this.db.prepare(`SELECT
+					id,
+					title,
+					description,
+					guest_access,
+					author_write_only,
+					(password IS NOT NULL) as password_protected
+				FROM topics
+				WHERE creator_id = ?
+			`).all([event.data.data.id]);
+
+			event.response({
+				command: "getUserTopicsResponse",
+				error: false,
+				data: rows	
+			});
+		} catch (err: any) {
+			event.response({
+				command: "getUserTopicsResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
+	}
+
+	async createTopic (event: Event) {
+		try {
+			if (event.data.data.password) {
+				const hash = await bcrypt.hash(event.data.data.password, 10);
+
+				this.db.prepare(`INSERT INTO topics (
+					creator_id,
+					title,
+					description,
+					guest_access,
+					author_write_only,
+					password
+				) VALUES (
+					?,
+					?,
+					?,
+					?,
+					?,
+					?
+				)`).run([ event.data.data.creator_id, event.data.data.title, event.data.data.description, Number(event.data.data.guest_access), Number(event.data.data.author_write_only), hash ]);
+			} else {
+				this.db.prepare(`INSERT INTO topics (
+					creator_id,
+					title,
+					description,
+					guest_access,
+					author_write_only
+				) VALUES (
+					?,
+					?,
+					?,
+					?,
+					?
+				)`).run([ event.data.data.creator_id, event.data.data.title, event.data.data.description, Number(event.data.data.guest_access), Number(event.data.data.author_write_only) ]);
+			}
+
+			event.response({
+				command: "createTopicResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "createTopicResponse",
+				error: true,
+				details: err.toString()
+			})
+		}
+	}
+
+	async updateTopic (event: Event) {
+		try {
+			const userRow = this.db.prepare(`SELECT (
+				is_admin = 1 OR (SELECT creator_id FROM topics WHERE id=?)
+			) as can_manage
+			FROM users WHERE id=?`).get([ event.data.data.id, event.data.data.userId ]) as { can_manage: boolean };
+
+			if (!userRow.can_manage) throw new Error("Access denied");
+
+			if (event.data.data.password) {
+				const hash = await bcrypt.hash(event.data.data.password, 10);
+
+				this.db.prepare(`UPDATE topics SET
+					title=?,
+					description=?,
+					guest_access=?,
+					author_write_only=?,
+					password=?
+				WHERE id = ?
+				`).run([ event.data.data.title, event.data.data.description, Number(event.data.data.guest_access), Number(event.data.data.author_write_only), hash, event.data.data.id ]);
+			} else {
+				this.db.prepare(`UPDATE topics SET
+					title=?,
+					description=?,
+					guest_access=?,
+					author_write_only=?
+				WHERE id = ?
+			`).run([ event.data.data.title, event.data.data.description, Number(event.data.data.guest_access), Number(event.data.data.author_write_only), event.data.data.id ]);
+			}
+
+			event.response({
+				command: "updateTopicResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "updateTopicResponse",
+				error: true,
+				details: err.toString()
+			})
+		}
+	}
+
+	deleteTopic (event: Event) {
+		try {
+			const userRow = this.db.prepare(`SELECT (
+				is_admin = 1 OR (SELECT creator_id FROM topics WHERE id=?)
+			) as can_manage
+			FROM users WHERE id=?`).get([ event.data.data.id, event.data.data.userId ]) as { can_manage: boolean };
+
+			if (!userRow.can_manage) throw new Error("Access denied");
+				
+			// delete all messages and attachments
+			
+			this.db.prepare(`DELETE FROM topics WHERE id=?`).run([ event.data.data.id ]);
+
+			event.response({
+				command: "deleteTopicResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "deleteTopicResponse",
+				error: true,
+				details: err.toString()
+			})
 		}
 	}
 

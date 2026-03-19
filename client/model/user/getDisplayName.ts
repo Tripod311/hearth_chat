@@ -3,12 +3,12 @@ import { AsyncFunctionPipe } from "@tripod311/pump"
 interface Output {
 	error: boolean;
 	details?: string;
-	data: any[];
+	data?: string;
 }
 
-const MyTopicsRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const GetDisplayNameRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/myTopics");
+		const response = await fetch(window.location.origin + "/api/displayName");
 
 		const data = await response.json();
 
@@ -26,4 +26,4 @@ const MyTopicsRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 	}
 });
 
-export default MyTopicsRequest
+export default GetDisplayNameRequest

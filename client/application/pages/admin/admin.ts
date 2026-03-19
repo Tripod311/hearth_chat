@@ -3,6 +3,7 @@ import View from "./admin.html?raw"
 
 import NodeTab from "./nodeTab/component.js"
 import UsersTab from "./usersTab/component.js"
+import TopicsTab from "./topicsTab/component.js"
 
 export default class AdminPage extends Component {
 	protected static componentName = "AdminPage";
@@ -15,6 +16,8 @@ export default class AdminPage extends Component {
 
 		this.refs.node.onclick = this.setTab.bind(this, "node");
 		this.refs.users.onclick = this.setTab.bind(this, "users");
+		this.refs.actors.onclick = this.setTab.bind(this, "actors");
+		this.refs.topics.onclick = this.setTab.bind(this, "topics");
 		this.refs.related.onclick = this.setTab.bind(this, "related");
 
 		this.setTab("node")
@@ -37,6 +40,11 @@ export default class AdminPage extends Component {
 				break;
 			case "users":
 				this.slots.tab.push(new UsersTab({}));
+				break;
+			case "actors":
+				break;
+			case "topics":
+				this.slots.tab.push(new TopicsTab({}));
 				break;
 			case "related":
 				break;

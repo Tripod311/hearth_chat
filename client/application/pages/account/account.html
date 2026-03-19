@@ -1,10 +1,14 @@
 <div class="w-full h-full p-4 flex flex-col gap-4">
+	<div class="w-full p-2 rounded bg-secondaty border-default border flex flex-row">
+		<span class="font-bold">Display name:</span>
+		<span class="ml-2" data-ref="displayName"></span>
+	</div>
 	<div data-ref="changeName" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Change name</div>
 	<div data-ref="changePassword" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Change password</div>
 	<div>
 		<div data-ref="createTopic" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none mb-3">Create topic</div>
 		<div class="text-lg">My topics</div>
-		<div data-ref="topics" class="flex flex-row flex-wrap gap-2">
+		<div data-ref="topics" class="flex flex-row flex-wrap gap-2 p-2">
 		</div>
 	</div>
 </div>

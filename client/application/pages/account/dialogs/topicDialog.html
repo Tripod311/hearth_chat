@@ -1,0 +1,28 @@
+<div class="w-full h-full pointer-events-auto flex flex-col justify-center items-center absolute top-0 left-0 pointer-events-auto">
+	<div data-ref="container" class="flex flex-col gap-2 p-2 max-w-full w-screen-md relative bg-card rounded-xl text-center" style="transition: opacity 0.3s, top 0.3s; top:-20px; opacity:0">
+		<div class="p-2 border rounded-xl flex flex-col gap-2">
+			<span>Title</span>
+			<input data-ref="title" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl" />
+		</div>
+		<div class="p-2 border rounded-xl flex flex-col gap-2">
+			<span>Description</span>
+			<textarea data-ref="description" class="w-full p-2 border border-default bg-white text-black rounded-xl min-h-[300px]"></textarea>
+		</div>
+		<div class="p-2 border rounded-xl flex flex-col gap-2">
+			<span>Allow guests</span>
+			<input data-ref="guest_access" type="checkbox" class="w-[30px] h-[30px]" />
+		</div>
+		<div class="p-2 border rounded-xl flex flex-col gap-2">
+			<span>Only author can write (channel)</span>
+			<input data-ref="author_write_only" type="checkbox" class="w-[30px] h-[30px]" />
+		</div>
+		<div class="p-2 border rounded-xl flex flex-col gap-2">
+			<span>Password (leave empty if you don't need password)</span>
+			<input data-ref="password" type="password" class="w-full p-2 border border-default bg-white text-black rounded-xl" />
+		</div>
+		<div class="w-full flex flex-row gap-4 justify-center">
+			<div class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none" data-ref="okButton">OK</div>
+			<div class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none" data-ref="cancelButton">Cancel</div>
+		</div>
+	</div>
+</div>

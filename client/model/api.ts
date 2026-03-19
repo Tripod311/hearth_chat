@@ -10,6 +10,8 @@ import DeleteUserRequest from "./user/deleteUser.js"
 import EditUserRequest from "./user/editUser.js"
 import CreateInviteRequest from "./user/createInvite.js"
 import AcceptInviteRequest from "./user/acceptInvite.js"
+import GetDisplayNameRequest from "./user/getDisplayName.js"
+import SetDisplayNameRequest from "./user/setDisplayName.js"
 
 import MyTopicsRequest from "./topic/myTopics.js"
 import CreateTopicRequest from "./topic/create.js"
@@ -37,6 +39,8 @@ export default function addAPI (model: Pump) {
 	userRoot.addPipe("editUser", EditUserRequest);
 	userRoot.addPipe("createInvite", CreateInviteRequest);
 	userRoot.addPipe("acceptInvite", AcceptInviteRequest);
+	userRoot.addPipe("getDisplayName", GetDisplayNameRequest);
+	userRoot.addPipe("setDisplayName", SetDisplayNameRequest);
 
 	const topicRoot = new Pipe();
 	root.addPipe("topic", topicRoot);

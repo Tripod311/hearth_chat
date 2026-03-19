@@ -1,7 +1,7 @@
 import { AsyncFunctionPipe } from "@tripod311/pump"
 
 interface Input {
-	login: string;
+	login?: string;
 	password: string;
 }
 

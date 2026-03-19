@@ -118,6 +118,47 @@ export default class API extends Node {
 			this.acceptInvite.bind(this)
 		]));
 
+		this.instance.get("/api/displayName", this.baseChain.concat([
+			this.verify.bind(this),
+			this.getDisplayName.bind(this)
+		]));
+
+		this.instance.post("/api/displayName", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.setDisplayName.bind(this)
+		]));
+
+		// topic actions
+
+		this.instance.get("/api/myTopics", this.baseChain.concat([
+			this.verify.bind(this),
+			this.myTopics.bind(this)
+		]));
+
+		this.instance.get("/api/allTopics", this.baseChain.concat([
+			this.verify.bind(this),
+			this.allTopics.bind(this)
+		]));
+
+		this.instance.post("/api/createTopic", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.createTopic.bind(this)
+		]));
+
+		this.instance.post("/api/updateTopic", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.updateTopic.bind(this)
+		]));
+
+		this.instance.post("/api/deleteTopic", this.baseChain.concat([
+			this.verify.bind(this),
+			JsonBody,
+			this.deleteTopic.bind(this)
+		]));
+
 		// node actions
 
 		this.instance.post("/api/titlePage", this.baseChain.concat([
@@ -185,7 +226,7 @@ export default class API extends Node {
 								sameSite: "Strict",
 								maxAge: 60 * 60 * 24
 							});
-							ctx.status(200).json({ error: false, data: { login: ctx.body.login, is_admin: dbResponse.data.data.is_admin, is_bot: dbResponse.data.data.is_bot }});
+							ctx.status(200).json({ error: false, data: { id: dbResponse.data.data.id, login: ctx.body.login, is_admin: dbResponse.data.data.is_admin, is_bot: dbResponse.data.data.is_bot }});
 						}
 
 						resolve();
@@ -255,22 +296,24 @@ export default class API extends Node {
 
 	setPassword (ctx: Context): Promise<void> {
 		return new Promise((resolve, reject) => {
-			let isValidUser = ctx.locals.userInfo.is_admin || ctx.locals.userInfo.login === ctx.body.login;
+			let login: string;
 
-			if (!isValidUser) {
-				ctx.status(403).json({ error: true, details: "Access forbidden" });
+			if (ctx.locals.userInfo.is_admin && ctx.body.login) {
+				login = ctx.body.login;
 			} else {
-				this.chain(this.dbAddress, {
-					command: "setPassword",
-					data: ctx.body
-				}, (response: Event) => {
-					if (response.data.error) {
-						ctx.status(500).json({ error: true, details: response.data.details });
-					} else {
-						ctx.status(200).json({ error: false, data: response.data.data });
-					}
-				});
+				login = ctx.locals.userInfo.login;
 			}
+
+			this.chain(this.dbAddress, {
+				command: "setPassword",
+				data: { login: login, password: ctx.body.password }
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
 		});
 	}
 
@@ -361,6 +404,133 @@ export default class API extends Node {
 			this.chain(inviteAddr, {
 				command: "acceptInvite",
 				data: ctx.body
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false });
+				}
+			});
+		});
+	}
+
+	getDisplayName (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "getDisplayName",
+				data: { id: ctx.locals.userInfo.id }
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		});
+	}
+
+	setDisplayName (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "setDisplayName",
+				data: { id: ctx.locals.userInfo.id, displayName: ctx.body.displayName }
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		});
+	}
+
+	myTopics (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "getUserTopics",
+				data: {
+					id: ctx.locals.userInfo.id
+				}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		});
+	}
+
+	allTopics (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "getAllTopics",
+				data: {}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		});
+	}
+
+	createTopic (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "createTopic",
+				data: {
+					creator_id: ctx.locals.userInfo.id,
+					title: ctx.body.title,
+					description: ctx.body.description,
+					guest_access: ctx.body.guest_access,
+					author_write_only: ctx.body.author_write_only,
+					password: ctx.body.password
+				}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false });
+				}
+			});
+		});
+	}
+
+	updateTopic (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			// check admin or owner
+
+			this.chain(this.dbAddress, {
+				command: "updateTopic",
+				data: {
+					userId: ctx.locals.userInfo.id,
+					id: ctx.body.id,
+					title: ctx.body.title,
+					description: ctx.body.description,
+					guest_access: ctx.body.guest_access,
+					author_write_only: ctx.body.author_write_only,
+					password: ctx.body.password
+				}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false });
+				}
+			});
+		});
+	}
+
+	deleteTopic (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this.chain(this.dbAddress, {
+				command: "deleteTopic",
+				data: {
+					userId: ctx.locals.userInfo.id,
+					id: ctx.body.id
+				}
 			}, (response: Event) => {
 				if (response.data.error) {
 					ctx.status(500).json({ error: true, details: response.data.details });

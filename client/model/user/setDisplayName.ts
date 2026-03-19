@@ -1,7 +1,7 @@
 import { AsyncFunctionPipe } from "@tripod311/pump"
 
 interface Input {
-	id: number;
+	displayName: string;
 }
 
 interface Output {
@@ -9,9 +9,9 @@ interface Output {
 	details?: string;
 }
 
-const DeleteTopicRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
+const SetDisplayNameRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/deleteTopic", {
+		const response = await fetch(window.location.origin + "/api/displayName", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -34,4 +34,4 @@ const DeleteTopicRequest = new AsyncFunctionPipe<Input, Output>(async (input: In
 	}
 });
 
-export default DeleteTopicRequest
+export default SetDisplayNameRequest
