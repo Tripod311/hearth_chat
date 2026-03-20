@@ -27,7 +27,7 @@
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "jsonwebtoken": "^9.0.3",
-    "mediasoup": "^3.19.17",
+    "mediasoup": "^3.19.18",
     "mediasoup-client": "^3.18.7",
     "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3",

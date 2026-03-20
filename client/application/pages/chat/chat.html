@@ -2,11 +2,13 @@
 	<div data-ref="messages" class="w-full h-full grow">
 		<!--slot:messages-->
 	</div>
-	<div data-ref="inputContainer" class="w-full p-4 border border-default rounded-xl max-h-[200px] flex flex-row gap-2 pr-[35px]">
-		<textarea data-ref="input" class="bg-primary outline-none grow"></textarea>
-		<img data-ref="sendMessage" class="cursor-pointer w-[30px] h-[30px]" />
+	<div data-ref="inputContainer" class="w-full p-2 border border-default rounded-xl max-h-[200px] flex flex-row gap-2">
+		<textarea data-ref="input" class="bg-primary outline-none grow resize-none"></textarea>
+		<div class="flex flex-col gap-2">
+			<img data-ref="send" class="cursor-pointer w-[30px] h-[30px]" />
+			<img data-ref="voice" class="cursor-pointer w-[30px] h-[30px]" />
+		</div>
 	</div>
-	<div data-ref="voiceControls" class="absolute p-2 bottom-0 right-0">
-		<img data-ref="toggleVoiceControls" class="cursor-pointer w-[30px] h-[30px]" />
+	<div data-ref="voiceControls" class="absolute p-2 bottom-0 right-0 transition" style="width:0px; height:0px;">
 	</div>
 </div>

@@ -14,6 +14,7 @@ import Navigation from "./navigation/navigation.js"
 import TitlePage from "./pages/title/title.js"
 import AdminPage from "./pages/admin/admin.js"
 import AccountPage from "./pages/account/account.js"
+import ChatPage from "./pages/chat/chat.js"
 
 export default class Application extends Component {
 	protected static componentName = "Dashboard";
@@ -111,6 +112,9 @@ export default class Application extends Component {
 				break;
 			case "account":
 				this.slots.content.push(new AccountPage({}));
+				break;
+			case "topic":
+				this.slots.content.push(new ChatPage({ id: this.state.getProp("topicId") }));
 				break;
 		}
 	}

@@ -25,8 +25,10 @@ export default class TopicDialog extends Component {
 	}
 
 	onOk () {
+		const srcData = this.state.getProp("data");
+
 		const data = {
-			id: this.state.getProp("data").id,
+			id: srcData !== undefined ? srcData.id : undefined,
 			title: this.refs.title.value,
 			description: this.refs.description.value,
 			guest_access: this.refs.guest_access.checked,
