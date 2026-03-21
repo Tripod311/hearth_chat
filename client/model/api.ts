@@ -18,6 +18,7 @@ import CreateTopicRequest from "./topic/create.js"
 import DeleteTopicRequest from "./topic/delete.js"
 import UpdateTopicRequest from "./topic/update.js"
 import AllTopicsRequest from "./topic/allTopics.js"
+import WSRequest from "./topic/wsRequest.js"
 
 import TitlePageRequest from "./nodeInfo/titlePage.js"
 import GetNodeSettingsRequest from "./nodeInfo/getNodeSettings.js"
@@ -49,6 +50,7 @@ export default function addAPI (model: Pump) {
 	topicRoot.addPipe("update", UpdateTopicRequest);
 	topicRoot.addPipe("delete", DeleteTopicRequest);
 	topicRoot.addPipe("allTopics", AllTopicsRequest);
+	topicRoot.addPipe("wsRequest", WSRequest);
 
 	const nodeInfoRoot = new Pipe();
 	root.addPipe("nodeInfo", nodeInfoRoot);

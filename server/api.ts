@@ -1,8 +1,9 @@
+import crypto from "crypto"
 import path from "path"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context } from "@tripod311/currents"
 import type { CorsOptions, CurrentsOptions, RouteHandler } from "@tripod311/currents"
-import { WebSocketServer } from "ws"
+import { WebSocketServer, WebSocket } from "ws"
 import { parse } from "url"
 
 import login from "./api/user/login.js"
@@ -28,17 +29,22 @@ import fetchTitlePage from "./api/node/fetchTitlePage.js"
 import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
 
+interface WSOptions {
+	socket?: WebSocket;
+	timeout?: ReturnType<typeof setTimeout>;
+	user_id: number;
+	topic_id: number;
+	topic_node: string;
+}
+
 export default class API extends Node {
-	private ws: WebSocketServer;
+	private wsServer: WebSocketServer;
+	private wsConnections: Record<string, WSOptions> = {};
 
 	private instance: Currents;
 	private baseChain: RouteHandler[];
 	private port: number;
 	private uuid: string;
-
-	private accessAddress!: Address;
-	private dbAddress!: Address;
-	private gateAddress!: Address;
 
 	constructor (port: number, uuid: string) {
 		super();
@@ -64,7 +70,7 @@ export default class API extends Node {
 			ParseCookies()
 		];
 
-		this.ws = new WebSocketServer({ noServer: true });
+		this.wsServer = new WebSocketServer({ noServer: true });
 
 		// add routes
 
@@ -206,22 +212,20 @@ export default class API extends Node {
 			JsonBody,
 			setNodeSettings.bind(this)
 		]));
+
+		// ws setup
+
+		this.instance.post("/api/requestWS", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			this.requestWS.bind(this)
+		]));
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		this.instance.server.on("upgrade", (request, socket, head) => {
-			const { pathname } = parse(request.url || '');
-
-			if (pathname === '/ws') {
-				this.ws.handleUpgrade(request, socket, head, (ws) => {
-					this.ws.emit('connection', ws, request);
-				});
-			} else {
-				socket.destroy();
-			}
-		});
+		this.instance.server.on("upgrade", this.handleUpgrade.bind(this));
 
 		this.instance.server.listen(this.port, () => {
 			Log.success("Node listening on " + this.port, 0);
@@ -235,6 +239,83 @@ export default class API extends Node {
 	}
 
 	get ws_server (): WebSocketServer {
-		return this.ws;
+		return this.wsServer;
+	}
+
+	requestWS (ctx: Context): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const user_id = ctx.locals.userInfo.id;
+			const topic_id = ctx.body.topic_id;
+			const topic_node = ctx.body.topic_node;
+
+			const reqId = crypto.randomUUID() as string;
+
+			this.wsConnections[reqId] = {
+				user_id: user_id,
+				topic_id: topic_id,
+				topic_node: topic_node,
+				timeout: setTimeout(() => {
+					delete this.wsConnections[reqId];
+				}, 1000 * 60 * 5)
+			}
+
+			ctx.status(200).json({ error: false, data: reqId });
+		});
+	}
+
+	handleUpgrade (request: any, socket: any, head: any) {
+		const { pathname } = parse(request.url || '');
+
+		if (!pathname || !pathname.startsWith("/ws")) {
+			socket.terminate();
+			return;
+		}
+
+		const reqId = pathname.split("/")[2];
+
+		if (!this.wsConnections[reqId]) {
+			socket.terminate();
+			return;
+		}
+
+		const dbAddress = this.address!.parent.data;
+		dbAddress.push("db");
+
+		this.chain(dbAddress, {
+			command: "getDisplayName",
+			data: {
+				id: this.wsConnections[reqId].user_id
+			}
+		}, (dbResponse) => {
+			if (dbResponse.data.error) {
+				socket.terminate();
+			} else {
+				let nodeId = this.wsConnections[reqId]
+				let topicId = pathname.split('/')[3];
+
+				if (!nodeId || !topicId) {
+					socket.terminate();
+					return;
+				}
+
+				const managerAddr = this.address!.parent.data;
+				managerAddr.push("topics");
+
+				if (this.wsConnections[reqId].topic_node === "self") {
+					this.send(managerAddr, {
+						command: "wsConnection",
+						data: {
+							socket: socket,
+							topic_id: this.wsConnections[reqId].topic_id,
+							node_id: null,
+							node_user_id: this.wsConnections[reqId].user_id,
+							display_name: dbResponse.data.data
+						}
+					});
+				} else {
+					// proxy to gate
+				}
+			}
+		});
 	}
 }
