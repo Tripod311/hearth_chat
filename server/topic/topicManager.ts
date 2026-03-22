@@ -18,8 +18,9 @@ export default class TopicManager extends Node {
 	async handleWSConnection (event: Event) {
 		const socket: WebSocket = event.data.data.socket;
 		const display_name: string = event.data.data.display_name;
-		const node_id: string = event.data.data.node_id;
-		const node_user_id: number = event.data.data.node_user_id;
+		const is_admin: boolean = event.data.data.is_admin;
+		const id: number = event.data.data.id;
+		const node_user_id = event.data.data.node_user_id;
 		const topic_id: number = event.data.data.topic_id;
 
 		try {
@@ -32,7 +33,7 @@ export default class TopicManager extends Node {
 				await this.pendingIds[topic_id];
 			}
 
-			const actor = new WSActor(display_name, node_id, node_user_id, socket);
+			const actor = new WSActor(is_admin, display_name, id, null, node_user_id, socket);
 			this.topics[topic_id]!.connectActor(actor);
 		} catch (err: any) {
 			socket.terminate();
@@ -59,6 +60,7 @@ export default class TopicManager extends Node {
 					reject(`Can't fetch topic ${topic_id}: ${response.data.details}`);
 				} else {
 					this.topics[topic_id] = new TopicInterface(
+						topic_id,
 						response.data.data.title,
 						response.data.data.description,
 						response.data.data.guest_access,
@@ -66,6 +68,7 @@ export default class TopicManager extends Node {
 						response.data.data.author_write_only,
 						response.data.data.author_id
 					);
+					this.addChild(topic_id.toString(), this.topics[topic_id]);
 					resolve();
 				}
 			})

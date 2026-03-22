@@ -18,10 +18,15 @@ import myTopics from "./db/topics/myTopics.js"
 import createTopic from "./db/topics/createTopic.js"
 import updateTopic from "./db/topics/updateTopic.js"
 import deleteTopic from "./db/topics/deleteTopic.js"
+import getTopicById from "./db/topics/getTopicById.js"
 
 import fetchTitle from "./db/node/fetchTitle.js"
 import getNodeSettings from "./db/node/getNodeSettings.js"
 import setNodeSettings from "./db/node/setNodeSettings.js"
+
+import findActor from "./db/actor/findActor.js"
+
+import pushMessage from "./db/chat/pushMessage.js"
 
 interface UserFilter {
 	login?: string;
@@ -125,7 +130,6 @@ export default class DB extends Node {
 
 				actor_id INTEGER NOT NULL,
 				content TEXT,
-				attachments TEXT,
 
 				created_at INTEGER NOT NULL,
 
@@ -197,10 +201,15 @@ export default class DB extends Node {
 		this.setListener("createTopic", createTopic.bind(this, this.db));
 		this.setListener("updateTopic", updateTopic.bind(this, this.db));
 		this.setListener("deleteTopic", deleteTopic.bind(this, this.db));
+		this.setListener("getTopicById", getTopicById.bind(this, this.db));
 
 		this.setListener("fetchTitle", fetchTitle.bind(this, this.db));
 		this.setListener("getNodeSettings", getNodeSettings.bind(this, this.db));
 		this.setListener("setNodeSettings", setNodeSettings.bind(this, this.db));
+
+		this.setListener("findActor", findActor.bind(this, this.db));
+
+		this.setListener("pushMessage", pushMessage.bind(this, this.db));
 	}
 
 	detach () {

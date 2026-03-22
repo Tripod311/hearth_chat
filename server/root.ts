@@ -5,6 +5,7 @@ import API from "./api.js"
 import Access from "./access.js"
 import Gate from "./gate.js"
 import InviteManager from "./inviteManager.js"
+import TopicManager from "./topic/topicManager.js"
 
 export default class Root extends Node {
 	private db: DB;
@@ -12,6 +13,7 @@ export default class Root extends Node {
 	private access: Access;
 	private gate: Gate;
 	private invites: InviteManager;
+	private topicManager: TopicManager;
 
 	constructor () {
 		super();
@@ -21,6 +23,7 @@ export default class Root extends Node {
 		this.access = new Access();
 		this.gate = new Gate(this.db.uuid, this.db.gatePort);
 		this.invites = new InviteManager();
+		this.topicManager = new TopicManager();
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -31,5 +34,6 @@ export default class Root extends Node {
 		this.addChild("access", this.access);
 		this.addChild("gate", this.gate);
 		this.addChild("invites", this.invites);
+		this.addChild("topics", this.topicManager);
 	}
 }

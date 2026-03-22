@@ -4,10 +4,10 @@ import Actor from "./actor.js"
 
 export default class WSActor extends Actor {
 	private socket: WebSocket;
-	private timeout: ReturnType<typeof setTimeout>;
+	private timeout?: ReturnType<typeof setTimeout>;
 
-	constructor (display_name: string, node_id: string, node_user_id: number, socket: WebSocket) {
-		super(display_name, node_id, node_user_id);
+	constructor (is_admin: boolean, display_name: string, id: number, node_id: string | null, node_user_id: number, socket: WebSocket) {
+		super(is_admin, display_name, id, node_id, node_user_id);
 
 		this.socket = socket;
 
@@ -16,6 +16,10 @@ export default class WSActor extends Actor {
 		this.socket.on("error", this.handleClose.bind(this));
 
 		this.pingSocket();
+	}
+
+	kill () {
+		clearTimeout(this.timeout);
 	}
 
 	handleMessage (data: Buffer) {
@@ -27,7 +31,7 @@ export default class WSActor extends Actor {
 			switch (message.command) {
 				case "pong":
 					clearTimeout(this.timeout);
-					this.pingSocket();
+					this.timeout = setTimeout(this.pingSocket.bind(this), 1000 * 60);
 					break;
 				case "pushMessage":
 					this.emit("pushMessage", message.data);
@@ -48,7 +52,7 @@ export default class WSActor extends Actor {
 
 	proxy (data: string) {
 		if (this.socket.bufferedAmount > 1000000) {
-			this.socket.terminate()
+			this.socket.close()
 			return;
 		}
 

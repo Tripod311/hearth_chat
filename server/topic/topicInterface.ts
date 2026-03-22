@@ -1,9 +1,10 @@
-import EventEmitter from "events"
+import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 
-export default class TopicInterface extends EventEmitter {
+export default class TopicInterface extends Node {
 	private actors: Set<Actor> = new Set();
 
+	public id: number;
 	public title: string;
 	public description: string;
 	public guest_access: boolean;
@@ -11,15 +12,34 @@ export default class TopicInterface extends EventEmitter {
 	public author_write_only: boolean;
 	public author_id: number;
 
-	constructor (title: string, description: string, guest_access: boolean, password_protected: boolean, author_write_only: boolean, author_id: number) {
+	private dbAddress!: Address;
+
+	constructor (id: number, title: string, description: string, guest_access: boolean, password_protected: boolean, author_write_only: boolean, author_id: number) {
 		super();
 		
+		this.id = id;
 		this.title = title;
 		this.description = description;
 		this.guest_access = guest_access;
 		this.password_protected = password_protected;
 		this.author_write_only = author_write_only;
 		this.author_id = author_id;
+	}
+
+	attach (dispatcher: Dispatcher, address: Address) {
+		super.attach(dispatcher, address);
+
+		const dbAddress = this.address!.parent.parent.data;
+		dbAddress.push("db");
+		this.dbAddress = new Address(dbAddress);
+	}
+
+	detach () {
+		for (const actor of this.actors) {
+			actor.kill();
+		}
+
+		super.detach();
 	}
 
 	connectActor (actor: Actor) {
@@ -33,7 +53,14 @@ export default class TopicInterface extends EventEmitter {
 
 		actor.proxy(JSON.stringify({
 			command: "setup",
-			data: {/* setup data */}
+			data: {
+				selfId: actor.id,
+				title: this.title,
+				description: this.description,
+				password_protected: this.password_protected,
+				author_write_only: this.author_write_only,
+				can_write: this.author_write_only ? actor.is_admin || (actor.node_id === null && actor.node_user_id === this.author_id) : true
+			}
 		}));
 
 		this.notify(JSON.stringify({
@@ -51,7 +78,7 @@ export default class TopicInterface extends EventEmitter {
 		}));
 	}
 
-	fetchMessages (actor: Actor) {
+	fetchMessages (actor: Actor, ) {
 		if (actor.authorized) {
 
 		} else {
@@ -59,9 +86,25 @@ export default class TopicInterface extends EventEmitter {
 		}
 	}
 
-	pushMessage (actor: Actor) {
+	pushMessage (actor: Actor, data: { content: string; attachments: string; }) {
 		if (actor.authorized) {
-
+			this.send(this.dbAddress, {
+				command: "pushMessage",
+				data: {
+					actor_id: actor.id,
+					content: data.content,
+					attachments: data.attachments
+				}
+			});
+			this.notify(JSON.stringify({
+				command: "message",
+				data: {
+					actor_id: actor.id,
+					content: data.content,
+					attachments: data.attachments,
+					created_at: (Date.now())/1000
+				}
+			}));
 		} else {
 			
 		}

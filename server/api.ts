@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import path from "path"
+import { Socket } from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context } from "@tripod311/currents"
 import type { CorsOptions, CurrentsOptions, RouteHandler } from "@tripod311/currents"
@@ -32,6 +33,7 @@ import setNodeSettings from "./api/node/setNodeSettings.js"
 interface WSOptions {
 	socket?: WebSocket;
 	timeout?: ReturnType<typeof setTimeout>;
+	is_admin: boolean;
 	user_id: number;
 	topic_id: number;
 	topic_node: string;
@@ -233,6 +235,15 @@ export default class API extends Node {
 	}
 
 	detach () {
+		for (const id in this.wsConnections) {
+			clearTimeout(this.wsConnections[id].timeout);
+		}
+
+		for (const client of this.wsServer.clients) {
+			client.terminate();
+		}
+
+		this.wsServer.close();
 		this.instance.server.close();
 
 		super.detach();
@@ -251,6 +262,7 @@ export default class API extends Node {
 			const reqId = crypto.randomUUID() as string;
 
 			this.wsConnections[reqId] = {
+				is_admin: ctx.locals.userInfo.is_admin,
 				user_id: user_id,
 				topic_id: topic_id,
 				topic_node: topic_node,
@@ -267,34 +279,37 @@ export default class API extends Node {
 		const { pathname } = parse(request.url || '');
 
 		if (!pathname || !pathname.startsWith("/ws")) {
-			socket.terminate();
+			socket.destroy();
 			return;
 		}
 
 		const reqId = pathname.split("/")[2];
 
 		if (!this.wsConnections[reqId]) {
-			socket.terminate();
+			socket.destroy();
 			return;
 		}
+
+		clearTimeout(this.wsConnections[reqId].timeout);
 
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
 		this.chain(dbAddress, {
-			command: "getDisplayName",
+			command: "findActor",
 			data: {
-				id: this.wsConnections[reqId].user_id
+				node_id: null,
+				node_user_id: this.wsConnections[reqId].user_id
 			}
 		}, (dbResponse) => {
 			if (dbResponse.data.error) {
-				socket.terminate();
+				socket.destroy();
 			} else {
-				let nodeId = this.wsConnections[reqId]
-				let topicId = pathname.split('/')[3];
+				let nodeId = this.wsConnections[reqId].topic_node;
+				let topicId = this.wsConnections[reqId].topic_id;
 
 				if (!nodeId || !topicId) {
-					socket.terminate();
+					socket.destroy();
 					return;
 				}
 
@@ -302,15 +317,19 @@ export default class API extends Node {
 				managerAddr.push("topics");
 
 				if (this.wsConnections[reqId].topic_node === "self") {
-					this.send(managerAddr, {
-						command: "wsConnection",
-						data: {
-							socket: socket,
-							topic_id: this.wsConnections[reqId].topic_id,
-							node_id: null,
-							node_user_id: this.wsConnections[reqId].user_id,
-							display_name: dbResponse.data.data
-						}
+					this.wsServer.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+						this.send(managerAddr, {
+							command: "wsConnection",
+							data: {
+								socket: ws,
+								topic_id: this.wsConnections[reqId].topic_id,
+								is_admin: this.wsConnections[reqId].is_admin,
+								id: dbResponse.data.data.id,
+								node_user_id: this.wsConnections[reqId].user_id,
+								display_name: dbResponse.data.data.display_name
+							}
+						});
+						delete this.wsConnections[reqId];
 					});
 				} else {
 					// proxy to gate

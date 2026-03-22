@@ -20,7 +20,7 @@ export default class ChatPage extends Component {
 	mounted () {
 		super.mounted();
 
-		this.enterListener = this.enterListener.bind(this);
+		this.enterListener = this.handleEnter.bind(this);
 
 		this.refs.send.src = SendIcon;
 		this.refs.voice.src = PhoneIcon;
@@ -41,7 +41,7 @@ export default class ChatPage extends Component {
 
 		const sp = window.location.pathname.split("/");
 		const topic_node = sp[1];
-		const topic_id = sp[3];
+		const topic_id = parseInt(sp[3]);
 
 		const response = await Model.getPipe("api.topic.wsRequest").run({ topic_id, topic_node });
 
@@ -53,7 +53,7 @@ export default class ChatPage extends Component {
 			});
 			Model.getPipe("modals.showDialog").run(notification);
 		} else {
-			this.socket = new WebSocket(`/${ws}/${response.data}`);
+			this.socket = new WebSocket(`/ws/${response.data}`);
 
 			this.socket.onopen = () => {
 				spinner.emit("close");
@@ -115,7 +115,7 @@ export default class ChatPage extends Component {
 		this.systemMessage(`Connection closed: ${err.message || err.toString()}`);
 	}
 
-	enterListener (e: KeyEvent) {
+	handleEnter (e: KeyEvent) {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 
