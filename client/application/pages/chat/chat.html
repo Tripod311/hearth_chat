@@ -1,20 +1,30 @@
 <div class="relative w-full h-full flex flex-col gap-2">
+	<input data-ref="fileInput" type="file" class="hidden" />
+	<div class="w-full flex flex-row items-center justify-between p-2 border-b border-default">
+		<div data-ref="title" class="text-xl cursor-pointer"></div>
+		<img data-ref="voice" class="cursor-pointer w-[30px] h-[30px]" title="Voice chat controls" />
+	</div>
 	<div class="w-full h-full grow overflow-auto p-2">
 		<div data-ref="messages" class="w-full min-h-full flex flex-col">
 			<!--slot:messages-->
 		</div>
 	</div>
-	<div data-ref="inputContainer" class="w-full p-2 border border-default rounded-xl max-h-[200px] flex flex-row gap-2">
-		<div class="flex flex-col gap-2">
-			<img data-ref="attach" class="cursor-pointer w-[30px] h-[30px]" title="Send file" />
-		</div>
-		<textarea data-ref="input" class="bg-primary outline-none grow resize-none"></textarea>
-		<div class="flex flex-col gap-2">
-			<img data-ref="send" class="cursor-pointer w-[30px] h-[30px]" title="Send message" />
-			<img data-ref="voice" class="cursor-pointer w-[30px] h-[30px]" title="Voice chat controls" />
+	<div class="flex flex-col max-h-[200px]">
+		<div data-ref="attachments" class="flex flex-row flex-nowrap gap-2 p-2 hidden"></div>
+		<div data-ref="inputContainer" class="w-full p-2 border border-default rounded-xl flex flex-row gap-2">
+			<div class="flex flex-col gap-2">
+				<img data-ref="attach" class="cursor-pointer w-[30px] h-[30px]" title="Send file" />
+			</div>
+			<textarea data-ref="input" class="bg-primary outline-none grow resize-none"></textarea>
+			<div class="flex flex-col gap-2">
+				<img data-ref="send" class="cursor-pointer w-[30px] h-[30px]" title="Send message" />
+			</div>
 		</div>
 	</div>
-	<div data-ref="voiceControls" class="absolute p-2 bottom-0 right-0 transition" style="width:0px; height:0px;">
-		<!--slot:voiceControls-->
+	<div data-ref="voiceChat" class="absolute p-2 top-0 right-0 transition" style="width:0px; height:0px;">
+		<!--slot:voiceChat-->
+	</div>
+	<div data-ref="topicInfo" class="absolute p-2 top-0 left-0 transition" style="width:0px; height:0px;">
+		
 	</div>
 </div>

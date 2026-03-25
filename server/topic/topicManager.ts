@@ -19,6 +19,7 @@ export default class TopicManager extends Node {
 		const socket: WebSocket = event.data.data.socket;
 		const display_name: string = event.data.data.display_name;
 		const is_admin: boolean = event.data.data.is_admin;
+		const is_bot: boolean = event.data.data.is_bot;
 		const id: number = event.data.data.id;
 		const node_user_id = event.data.data.node_user_id;
 		const topic_id: number = event.data.data.topic_id;
@@ -33,7 +34,7 @@ export default class TopicManager extends Node {
 				await this.pendingIds[topic_id];
 			}
 
-			const actor = new WSActor(is_admin, display_name, id, null, node_user_id, socket);
+			const actor = new WSActor(is_admin, is_bot, display_name, id, null, node_user_id, socket);
 			this.topics[topic_id]!.connectActor(actor);
 		} catch (err: any) {
 			socket.terminate();

@@ -34,6 +34,7 @@ interface WSOptions {
 	socket?: WebSocket;
 	timeout?: ReturnType<typeof setTimeout>;
 	is_admin: boolean;
+	is_bot: boolean;
 	user_id: number;
 	topic_id: number;
 	topic_node: string;
@@ -263,6 +264,7 @@ export default class API extends Node {
 
 			this.wsConnections[reqId] = {
 				is_admin: ctx.locals.userInfo.is_admin,
+				is_bot: ctx.locals.userInfo.is_bot,
 				user_id: user_id,
 				topic_id: topic_id,
 				topic_node: topic_node,
@@ -324,6 +326,7 @@ export default class API extends Node {
 								socket: ws,
 								topic_id: this.wsConnections[reqId].topic_id,
 								is_admin: this.wsConnections[reqId].is_admin,
+								is_bot: this.wsConnections[reqId].is_bot,
 								id: dbResponse.data.data.id,
 								node_user_id: this.wsConnections[reqId].user_id,
 								display_name: dbResponse.data.data.display_name

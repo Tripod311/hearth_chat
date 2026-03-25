@@ -1,6 +1,12 @@
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 
+interface ChunkRequest {
+	offset: number;
+	replaceContent: boolean;
+	chunk_size: number;
+}
+
 export default class TopicInterface extends Node {
 	private actors: Set<Actor> = new Set();
 
@@ -45,7 +51,7 @@ export default class TopicInterface extends Node {
 	connectActor (actor: Actor) {
 		this.actors.add(actor);
 
-		if (!this.password_protected) actor.authorized = true;
+		if (!this.password_protected || actor.is_admin) actor.authorized = true;
 
 		actor.on("disconnected", this.disconnectActor.bind(this, actor));
 		actor.on("fetchMessages", this.fetchMessages.bind(this, actor));
@@ -54,12 +60,20 @@ export default class TopicInterface extends Node {
 		actor.proxy(JSON.stringify({
 			command: "setup",
 			data: {
-				selfId: actor.id,
-				title: this.title,
-				description: this.description,
-				password_protected: this.password_protected,
-				author_write_only: this.author_write_only,
-				can_write: this.author_write_only ? actor.is_admin || (actor.node_id === null && actor.node_user_id === this.author_id) : true
+				topicInfo: {
+					selfId: actor.id,
+					title: this.title,
+					description: this.description,
+					password_protected: this.password_protected,
+					authorized: actor.authorized,
+					can_write: this.author_write_only ? actor.is_admin || (actor.node_id === null && actor.node_user_id === this.author_id) : true
+				},
+				actors: Array.from(this.actors).map(a => { return {
+					id: a.id,
+					display_name: a.display_name,
+					is_admin: a.is_admin,
+					is_bot: a.is_bot
+				}})
 			}
 		}));
 
@@ -78,11 +92,34 @@ export default class TopicInterface extends Node {
 		}));
 	}
 
-	fetchMessages (actor: Actor, ) {
+	fetchMessages (actor: Actor, req: ChunkRequest) {
 		if (actor.authorized) {
-
-		} else {
-
+			this.chain(this.dbAddress, {
+				command: "fetchMessages",
+				data: {
+					offset: req.offset
+				}
+			}, (response: Event) => {
+				if (response.data.error) {
+					actor.proxy(JSON.stringify({
+						command: "chunkError",
+						data: {
+							requestedOffset: req.offset,
+							replaceContent: req.replaceContent,
+							details: response.data.details
+						}
+					}));
+				} else {
+					actor.proxy(JSON.stringify({
+						command: "chunkResponse",
+						data: {
+							requestedOffset: req.offset,
+							replaceContent: req.replaceContent,
+							messages: response.data.data
+						}
+					}));
+				}
+			});
 		}
 	}
 
@@ -100,13 +137,20 @@ export default class TopicInterface extends Node {
 				command: "message",
 				data: {
 					actor_id: actor.id,
+					display_name: actor.display_name,
 					content: data.content,
 					attachments: data.attachments,
 					created_at: (Date.now())/1000
 				}
 			}));
 		} else {
-			
+			this.chain(this.dbAddress, {
+				command: "authTopic",
+				data: {
+					topic_id: this.id,
+					password: data.content
+				}
+			});
 		}
 	}
 
