@@ -21,7 +21,8 @@ export default function verify (this: Node, ctx: Context): Promise<void> {
 					SetCookie(ctx, "hearthchat_token", response.data.data.refreshToken, {
 						httpOnly: true,
 						sameSite: "Strict",
-						maxAge: 60 * 60 * 24
+						maxAge: 60 * 60 * 24,
+						path: "/"
 					});
 				}
 

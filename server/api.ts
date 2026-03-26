@@ -25,10 +25,23 @@ import allTopics from "./api/topic/allTopics.js"
 import createTopic from "./api/topic/createTopic.js"
 import updateTopic from "./api/topic/updateTopic.js"
 import deleteTopic from "./api/topic/deleteTopic.js"
+import uploadFiles from "./api/topic/uploadFiles.js"
 
 import fetchTitlePage from "./api/node/fetchTitlePage.js"
 import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
+
+const MP_OPTS = {
+	tmpDir: "./data/tmp",
+	maxRequestSize: 1024 * 1024 * 150,
+    maxFileSize: 1024 * 1024 * 100,
+    maxFieldSize: 1024 * 1024 * 10,
+    maxPartHeaderSize: 1024 * 16,
+    maxParts: 50,
+    maxFiles: 10,
+    requestTimeout: 1000 * 60 * 5,
+    chunkTimeout: 1000 * 30
+}
 
 interface WSOptions {
 	socket?: WebSocket;
@@ -43,6 +56,7 @@ interface WSOptions {
 export default class API extends Node {
 	private wsServer: WebSocketServer;
 	private wsConnections: Record<string, WSOptions> = {};
+	private sockets: Set<Socket> = new Set();
 
 	private instance: Currents;
 	private baseChain: RouteHandler[];
@@ -88,10 +102,11 @@ export default class API extends Node {
 			])
 		);
 
-		this.instance.get('/files/*', this.baseChain
+		this.instance.get('/self/files/*', this.baseChain
 			.concat([
+				verify.bind(this),
 				ServeStatic({
-					basePath: "/",
+					basePath: "/self/files/",
 					rootDir: path.join(process.cwd(), 'data/files'),
 					cacheControl: ["public", "max-age=31536000", "immutable"]
 				})
@@ -197,6 +212,12 @@ export default class API extends Node {
 			deleteTopic.bind(this)
 		]));
 
+		this.instance.post("/api/uploadFiles", this.baseChain.concat([
+			verify.bind(this),
+			StreamingMultipartBody(MP_OPTS),
+			uploadFiles.bind(this)
+		]));
+
 		// node actions
 
 		this.instance.post("/api/titlePage", this.baseChain.concat([
@@ -229,6 +250,7 @@ export default class API extends Node {
 		super.attach(dispatcher, address);
 
 		this.instance.server.on("upgrade", this.handleUpgrade.bind(this));
+		this.instance.server.on("connection", this.rememberSocket.bind(this));
 
 		this.instance.server.listen(this.port, () => {
 			Log.success("Node listening on " + this.port, 0);
@@ -236,6 +258,10 @@ export default class API extends Node {
 	}
 
 	detach () {
+		for (const socket of this.sockets) {
+			socket.destroy();
+		}
+
 		for (const id in this.wsConnections) {
 			clearTimeout(this.wsConnections[id].timeout);
 		}
@@ -252,6 +278,14 @@ export default class API extends Node {
 
 	get ws_server (): WebSocketServer {
 		return this.wsServer;
+	}
+
+	rememberSocket (socket: Socket) {
+		this.sockets.add(socket);
+
+		socket.on("close", () => {
+			this.sockets.delete(socket);
+		});
 	}
 
 	requestWS (ctx: Context): Promise<void> {

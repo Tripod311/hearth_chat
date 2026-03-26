@@ -4,14 +4,14 @@
 		<div data-ref="title" class="text-xl cursor-pointer"></div>
 		<img data-ref="voice" class="cursor-pointer w-[30px] h-[30px]" title="Voice chat controls" />
 	</div>
-	<div class="w-full h-full grow overflow-auto p-2">
-		<div data-ref="messages" class="w-full min-h-full flex flex-col">
+	<div data-ref="messages" class="w-full h-full grow overflow-auto p-2">
+		<div class="w-full min-h-full flex flex-col gap-4">
 			<!--slot:messages-->
 		</div>
 	</div>
-	<div class="flex flex-col max-h-[200px]">
-		<div data-ref="attachments" class="flex flex-row flex-nowrap gap-2 p-2 hidden"></div>
-		<div data-ref="inputContainer" class="w-full p-2 border border-default rounded-xl flex flex-row gap-2">
+	<div class="flex flex-col border border-default rounded-xl">
+		<div data-ref="attachments" class="w-full flex flex-row flex-nowrap gap-2 p-2 hidden"></div>
+		<div data-ref="inputContainer" class="w-full p-2 flex flex-row gap-2 max-h-[200px]">
 			<div class="flex flex-col gap-2">
 				<img data-ref="attach" class="cursor-pointer w-[30px] h-[30px]" title="Send file" />
 			</div>

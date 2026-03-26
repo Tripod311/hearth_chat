@@ -6,6 +6,7 @@ import Access from "./access.js"
 import Gate from "./gate.js"
 import InviteManager from "./inviteManager.js"
 import TopicManager from "./topic/topicManager.js"
+import UploadsTracker from "./uploadsTracker.js"
 
 export default class Root extends Node {
 	private db: DB;
@@ -14,6 +15,7 @@ export default class Root extends Node {
 	private gate: Gate;
 	private invites: InviteManager;
 	private topicManager: TopicManager;
+	private uploadsTracker: UploadsTracker;
 
 	constructor () {
 		super();
@@ -24,6 +26,7 @@ export default class Root extends Node {
 		this.gate = new Gate(this.db.uuid, this.db.gatePort);
 		this.invites = new InviteManager();
 		this.topicManager = new TopicManager();
+		this.uploadsTracker = new UploadsTracker();
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -35,5 +38,12 @@ export default class Root extends Node {
 		this.addChild("gate", this.gate);
 		this.addChild("invites", this.invites);
 		this.addChild("topics", this.topicManager);
+		this.addChild("uploadsTracker", this.uploadsTracker);
+	}
+
+	detach () {
+		this.uploadsTracker.forceCheck().then(() => {
+			super.detach();
+		})
 	}
 }

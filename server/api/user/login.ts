@@ -28,7 +28,8 @@ export default function login (this: Node, ctx: Context): Promise<void> {
 						SetCookie(ctx, "hearthchat_token", accessResponse.data.data.token, {
 							httpOnly: true,
 							sameSite: "Strict",
-							maxAge: 60 * 60 * 24
+							maxAge: 60 * 60 * 24,
+							path: "/"
 						});
 						ctx.status(200).json({ error: false, data: { id: dbResponse.data.data.id, login: ctx.body.login, is_admin: dbResponse.data.data.is_admin, is_bot: dbResponse.data.data.is_bot }});
 					}

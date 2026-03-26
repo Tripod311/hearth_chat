@@ -6,13 +6,16 @@ import Model from "../../../model/main.js"
 import PhoneIcon from "../../../icons/phone-call.svg"
 import SendIcon from "../../../icons/send.svg"
 import FileIcon from "../../../icons/file.svg"
+import DeleteIcon from "../../../icons/delete.svg"
 
 import ChatMessage from "./messages/chatMessage.js"
 import SystemMessage from "./messages/systemMessage.html?raw"
 import SpinnerMessage from "./messages/spinnerMessage.html?raw"
+import Attachment from "./attachment.html?raw"
 
 TemplateCache.registerDrop("chatSystemMessage", SystemMessage);
 TemplateCache.registerDrop("chatSpinnerMessage", SpinnerMessage);
+TemplateCache.registerDrop("attachment", Attachment);
 
 interface TopicInfo {
 	selfId: number;
@@ -36,7 +39,7 @@ interface Message {
 	actor_id: number;
 	display_name: string;
 	content: string;
-	attachments: string;
+	attachments: string[];
 	created_at: number;
 }
 
@@ -48,6 +51,7 @@ interface ChunkData {
 
 interface ChunkErrorData {
 	requestedOffset: number;
+	requestedDirection: string;
 	replaceContent: boolean;
 }
 
@@ -55,8 +59,8 @@ export default class ChatPage extends Component {
 	protected static componentName = "Chat";
 	protected static template = View;
 
-	private static readonly CHUNK_SIZE = 100;
-	private static readonly LIMIT = 400;
+	private static readonly CHUNK_SIZE = 50;
+	private static readonly LIMIT = 200;
 
 	private socket!: WebSocket;
 	private enterListener!: (e: KeyEvent) => void;
@@ -70,6 +74,7 @@ export default class ChatPage extends Component {
 	private bottomMessageId: number = 0;
 	private atStart: boolean = false;
 	private atEnd: boolean = false;
+	private atTop: boolean = false;
 	private atBottom: boolean = true;
 	private pendingBottomMessages: Message[] = [];
 
@@ -82,6 +87,8 @@ export default class ChatPage extends Component {
 		this.refs.send.onclick = this.send.bind(this);
 		this.refs.voice.src = PhoneIcon;
 		this.refs.attach.src = FileIcon;
+		this.refs.attach.onclick = this.addFile.bind(this);
+		this.refs.fileInput.onchange = this.handleFileInput.bind(this);
 		this.refs.messages.onscroll = this.handleScroll.bind(this);
 
 		this.makeConnection();
@@ -120,7 +127,7 @@ export default class ChatPage extends Component {
 			this.socket.onerror = () => {
 				spinner.emit("close");
 				this.systemMessage("Connection error");
-			}
+			};
 		}
 	}
 
@@ -139,6 +146,31 @@ export default class ChatPage extends Component {
 		this.slots.messages.push(comp);
 	}
 
+	onNewMessage (message: Message) {
+		if (message.actor_id === this.topicInfo.selfId) {
+			const comp = new ChatMessage({
+				...message,
+				is_mine: true
+			});
+
+			this.slots.messages.push(comp);
+		} else {
+			const comp = new ChatMessage({
+				...message,
+				is_mine: false
+			});
+
+			this.slots.messages.push(comp);
+		}
+
+		while (this.slots.messages.length > ChatPage.LIMIT) {
+			this.slots.messages.unshift();
+			this.atStart = false;
+		}
+
+		this.refs.messages.scrollTop = this.refs.messages.scrollHeight;
+	}
+
 	handleMessage (e: MessageEvent) {
 		const data = JSON.parse(e.data) as { command: string; data: any; };
 
@@ -149,7 +181,6 @@ export default class ChatPage extends Component {
 			case "setup":
 				this.setup(data.data);
 				if (this.topicInfo.authorized) {
-					this.waitingBottomChunk = true;
 					this.fetchMessages(-1, true);
 				}
 				break;
@@ -168,8 +199,8 @@ export default class ChatPage extends Component {
 			case "chunkError":
 				this.onChunkError(data.data);
 				break;
-			case "newMessage":
-				if (this.atBottom) {
+			case "message":
+				if (this.atEnd && this.atBottom) {
 					this.onNewMessage(data.data);
 				} else if (this.waitingBottomChunk) {
 					this.pendingBottomMessages.push(...data.messages);
@@ -216,181 +247,248 @@ export default class ChatPage extends Component {
 		this.fetchMessages(-1, true);
 	}
 
-	fetchMessages (offset: number, replaceContent: boolean = false) {
+	fetchMessages (offset: number, direction: '<' | '>' = '<', replaceContent: boolean = false) {
 		this.socket.send(JSON.stringify({
 			command: "fetchMessages",
 			data: {
 				offset: offset,
+				direction: direction,
 				replaceContent: replaceContent,
-				chunk_size: Chat.CHUNK_SIZE
+				chunk_size: ChatPage.CHUNK_SIZE
 			}
 		}));
+	}
+
+	firstInView (): HTMLElement | null {
+		if (this.slots.messages.length > 0) {
+			return this.slots.messages.getByIndex(0).DOMNode;
+		}
+
+		return null;
+	}
+
+	lastInView (): HTMLElement | null {
+		let result: HTMLElement | null = null;
+
+		if (this.slots.messages.length > 0) {
+			const rect = this.refs.messages.getBoundingClientRect();
+
+			let index = 0;
+			while (true) {
+				if (index === this.refs.messages.length) break;
+
+				const msg = this.slots.messages.getByIndex(index).DOMNode;
+				const msgRect = msg.getBoundingClientRect();
+
+				if (msgRect.top <= rect.top + rect.height) {
+					result = msg;
+				} else {
+					break;
+				}
+
+				index++;
+			}
+		}
+
+		return result;
+	}
+
+	replaceMessages (data: ChunkData) {
+		this.slots.messages.clear();
+
+		if (data.messages.length === 0) {
+			this.topMessageId = 0;
+			this.bottomMessageId = 0;
+			this.atStart = true;
+			this.atEnd = true;
+			this.atBottom = true;
+		} else {
+			for (const message of data.messages) {
+				if (message.actor_id === this.topicInfo.selfId) {
+					const comp = new ChatMessage({
+						...message,
+						is_mine: true
+					});
+
+					this.slots.messages.push(comp);
+				} else {
+					const comp = new ChatMessage({
+						...message,
+						is_mine: false
+					});
+
+					this.slots.messages.push(comp);
+				}
+			}
+
+			if (data.messages.length < ChatPage.CHUNK_SIZE) {
+				this.atStart = true;
+				this.atEnd = true;
+				this.atBottom = true;
+			} else if (data.requestedOffset === -1) {
+				this.atStart = false;
+				this.atEnd = true;
+				this.atBottom = true;
+			}
+
+			this.recalculateTopBottom();
+		}
+
+		this.refs.messages.scrollTop = this.refs.messages.scrollHeight;
+	}
+
+	addTopMessages (data: ChunkData) {
+		this.slots.messages.shift();
+
+		const scrollTo = this.lastInView();
+
+		for (let index=data.messages.length-1; index>=0; index--) {
+			const message = data.messages[index];
+
+			if (message.actor_id === this.topicInfo.selfId) {
+				const comp = new ChatMessage({
+					...message,
+					is_mine: true
+				});
+
+				this.slots.messages.unshift(comp);
+			} else {
+				const comp = new ChatMessage({
+					...message,
+					is_mine: false
+				});
+
+				this.slots.messages.unshift(comp);
+			}
+		}
+
+		if (data.messages.length < ChatPage.CHUNK_SIZE) {
+			this.atStart = true;
+		}
+
+		while (this.slots.messages.length > ChatPage.LIMIT) {
+			this.slots.messages.pop();
+			this.atEnd = false;
+			this.atBottom = false;
+		}
+
+		this.waitingTopChunk = false;
+		
+		if (scrollTo) {
+			scrollTo.scrollIntoView({ block: 'end' });
+		}
+
+		this.recalculateTopBottom();
+	}
+
+	addBottomMessages (data: ChunkData) {
+		this.slots.messages.pop();
+
+		const scrollTo = this.firstInView();
+
+		for (const message of data.messages) {
+			if (message.actor_id === this.topicInfo.selfId) {
+				const comp = new ChatMessage({
+					...message,
+					is_mine: true
+				});
+
+				this.slots.messages.push(comp);
+			} else {
+				const comp = new ChatMessage({
+					...message,
+					is_mine: false
+				});
+
+				this.slots.messages.push(comp);
+			}
+		}
+
+		if (data.messages.length < ChatPage.CHUNK_SIZE) {
+			this.atEnd = true;
+			this.atBottom = true;
+
+			for (const message of this.pendingBottomMessages) {
+				if (message.actor_id === this.topicInfo.selfId) {
+					const comp = new ChatMessage({
+						...message,
+						is_mine: true
+					});
+
+					this.slots.messages.push(comp);
+				} else {
+					const comp = new ChatMessage({
+						...message,
+						is_mine: false
+					});
+
+					this.slots.messages.push(comp);
+				}
+			}
+		}
+
+		this.pendingBottomMessages.length = 0;
+
+		while (this.slots.messages.length > ChatPage.LIMIT) {
+			this.slots.messages.shift();
+			this.atStart = false;
+		}
+
+		this.waitingBottomChunk = false;
+
+		if (scrollTo) {
+			scrollTo.scrollIntoView({ block: 'end' });
+		}
+
+		this.recalculateTopBottom();
+	}
+
+	recalculateTopBottom () {
+		this.topMessageId = this.slots.messages.getByIndex(0).id;
+		this.bottomMessageId = this.slots.messages.getByIndex(this.slots.messages.length - 1).id;
 	}
 
 	onChunkResponse (data: ChunkData) {
 		if (data.requestedOffset === -1) {
 			// initial
-			this.slots.messages.clear();
-
-			if (data.messages.length === 0) {
-				this.topMessageId = 0;
-				this.bottomMessageId = 0;
-				this.atStart = true;
-				this.atEnd = true;
-				this.atBottom = true;
-			} else {
-				this.topMessageId = Infinity;
-				this.bottomMessageId = -Infinity;
-
-				for (const message of data.messages) {
-					this.topMessageId = Math.min(this.topMessageId, message.id);
-					this.bottomMessageId = Math.max(this.bottomMessageId, message.id);
-
-					if (message.actor_id === this.topicInfo.selfId) {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: true
-						});
-
-						this.slots.messages.push(comp);
-					} else {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: false
-						});
-
-						this.slots.messages.push(comp);
-					}
-				}
-
-				if (data.messages.length < Chat.CHUNK_SIZE) {
-					this.atStart = true;
-					this.atEnd = true;
-				}
-			}
+			this.replaceMessages(data);
 		} else if (data.replaceContent) {
 			// scroll to pinned message. Not implemented yet
 		} else {
-			if (data.requestedOffset === this.topMessageId) {
-				this.slots.messages.unshift();
-
-				for (const message of data.messages) {
-					this.topMessageId = Math.min(this.topMessageId, message.id);
-					this.bottomMessageId = Math.max(this.bottomMessageId, message.id);
-
-					if (message.actor_id === this.topicInfo.selfId) {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: true
-						});
-
-						this.slots.messages.push(comp);
-					} else {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: false
-						});
-
-						this.slots.messages.push(comp);
-					}
-				}
-
-				if (data.messages.length < Chat.CHUNK_SIZE) {
-					this.atStart = true;
-				}
-
-				while (this.slots.messages.length > Chat.LIMIT) {
-					this.slots.messages.pop();
-					this.atEnd = false;
-					this.atBottom = false;
-				}
-
-				this.waitingTopChunk = false;
-			} else if (data.requestedOffset <= this.bottomMessageId) {
-				this.slots.messages.pop();
-
-				for (const message of data.messages) {
-					this.topMessageId = Math.min(this.topMessageId, message.id);
-					this.bottomMessageId = Math.max(this.bottomMessageId, message.id);
-
-					if (message.actor_id === this.topicInfo.selfId) {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: true
-						});
-
-						this.slots.messages.push(comp);
-					} else {
-						const comp = new ChatMessage({
-							...message,
-							is_mine: false
-						});
-
-						this.slots.messages.push(comp);
-					}
-				}
-
-				if (data.messages.length < Chat.CHUNK_SIZE) {
-					this.atEnd = true;
-					this.atBottom = true;
-
-					for (const message of this.pendingBottomMessages) {
-						if (message.actor_id === this.topicInfo.selfId) {
-							const comp = new ChatMessage({
-								...message,
-								is_mine: true
-							});
-
-							this.slots.messages.push(comp);
-						} else {
-							const comp = new ChatMessage({
-								...message,
-								is_mine: false
-							});
-
-							this.slots.messages.push(comp);
-						}
-					}
-
-					this.pendingBottomMessages.length = 0;
-				}
-
-				while (this.slots.messages.length > Chat.LIMIT) {
-					this.slots.messages.unshift();
-					this.atStart = false;
-				}
-
-				this.refs.messages.scrollTop = this.refs.messages.scrollHeight;
-
-				this.waitingBottomChunk = false;
+			if (data.requestedDirection === '<') {
+				this.addTopMessages(data);
+			} else if (data.requestedDirection === '>') {
+				this.addBottomMessages(data);
 			}
 		}
+
+		console.log(`TOP: ${this.topMessageId} BOTTOM: ${this.bottomMessageId}`);
 	}
 
 	onChunkError (data: ChunkErrorData) {
 		if (data.requestedOffset === this.topMessageId) {
-			this.slots.messages.unshift();
+			this.slots.messages.shift();
 		} else if (data.requestedOffset <= this.bottomMessageId) {
 			this.slots.messages.pop();
 		}
 	}
 
 	fetchTop () {
-		if (this.socket.readyState === WebSocket.OPEN && !this.waitingTopChunk) {
-			const spinner = Component.generic({}, TemplateCache.createDrop("chatSpinnerMessage", {}));
+		if (this.socket.readyState === WebSocket.OPEN && !this.waitingTopChunk && !this.atStart) {
+			const spinner = Component.generic({}, TemplateCache.createDrop("chatSpinnerMessage", {}).node);
 			this.slots.messages.unshift(spinner);
 
-			this.fetchMessages(Math.max(0, this.topMessageId));
+			this.fetchMessages(Math.max(0, this.topMessageId), '<');
 			this.waitingTopChunk = true;
 		}
 	}
 
 	fetchBottom () {
-		if (this.socket.readyState === WebSocket.OPEN && !this.waitingBottomChunk) {
-			const spinner = Component.generic({}, TemplateCache.createDrop("chatSpinnerMessage", {}));
+		if (this.socket.readyState === WebSocket.OPEN && !this.waitingBottomChunk && !this.atEnd) {
+			const spinner = Component.generic({}, TemplateCache.createDrop("chatSpinnerMessage", {}).node);
 			this.slots.messages.push(spinner);
 
-			this.fetchMessages(this.bottomMessageId + Chat.CHUNK_SIZE);
+			this.fetchMessages(this.bottomMessageId, '>');
 			this.waitingBottomChunk = true;
 		}
 	}
@@ -401,8 +499,24 @@ export default class ChatPage extends Component {
 		if (text.length > 0 || this.filesToSend.length > 0) {
 			let attachments: string[] = [];
 
-			if (this.authorized && this.filesToSend.length > 0) {
-				// await upload
+			if (this.topicInfo.authorized && this.filesToSend.length > 0) {
+				const spinner = Model.getPipe("modals.createSpinner").run();
+				Model.getPipe("modals.showDialog").run(spinner);
+
+				const response = await Model.getPipe("api.topic.uploadFiles").run(this.filesToSend);
+				spinner.emit("close");
+
+				if (response.error) {
+					const notification = Model.getPipe("modals.createNotification").run({
+						message: response.details,
+						buttonValue: "Ok"
+					});
+					Model.getPipe("modals.showDialog").run(notification);
+
+					return;
+				} else {
+					attachments = response.data.data;
+				}
 			}
 
 			this.socket!.send(JSON.stringify({
@@ -413,19 +527,20 @@ export default class ChatPage extends Component {
 				}
 			}));
 			this.refs.input.value = "";
-			this.refs.attachments.innerHTML = "";
-			this.refs.attachments.style.display = "none";
+			this.filesToSend = [];
+			this.renderFiles();
 		}
 	}
 
 	handleScroll () {
+		this.atTop = false;
 		this.atBottom = false;
 
 		const reachedEnd = this.refs.messages.scrollTop + this.refs.messages.clientHeight >= this.refs.messages.scrollHeight;
 		const reachedStart = this.refs.messages.scrollTop === 0;
 
 		if (reachedStart) {
-			this.topMessageId -= Chat.CHUNK_SIZE;
+			this.atTop = true;
 
 			this.fetchTop();
 		} else if (reachedEnd) {
@@ -435,5 +550,44 @@ export default class ChatPage extends Component {
 				this.atBottom = true;
 			}
 		}
+	}
+
+	addFile () {
+		this.refs.fileInput.click();
+	}
+
+	handleFileInput () {
+		const file = this.refs.fileInput.files[0];
+
+		if (!!file) {
+			this.filesToSend.push(file);
+			this.renderFiles();
+		}
+	}
+
+	renderFiles () {
+		this.refs.attachments.innerHTML = "";
+
+		if (this.filesToSend.length === 0) {
+			this.refs.attachments.style.display = "none";
+		} else {
+			this.refs.attachments.style.display = "flex";
+
+			for (let i=0; i<this.filesToSend.length; i++) {
+				const file = this.filesToSend[i];
+				const drop = TemplateCache.createDrop("attachment", {
+					name: file.name
+				});
+				drop.refs.delete.src = DeleteIcon;
+				drop.refs.delete.onclick = this.rmAttachment.bind(this, i);
+				this.refs.attachments.appendChild(drop.node);
+			}
+		}
+	}
+
+	rmAttachment (index: number) {
+		this.filesToSend.splice(index, 1);
+
+		this.renderFiles();
 	}
 }

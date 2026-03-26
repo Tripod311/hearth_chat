@@ -19,14 +19,15 @@ import createTopic from "./db/topics/createTopic.js"
 import updateTopic from "./db/topics/updateTopic.js"
 import deleteTopic from "./db/topics/deleteTopic.js"
 import getTopicById from "./db/topics/getTopicById.js"
+import pushMessage from "./db/topics/pushMessage.js"
+import fetchMessages from "./db/topics/fetchMessages.js"
+import authTopic from "./db/topics/authTopic.js"
 
 import fetchTitle from "./db/node/fetchTitle.js"
 import getNodeSettings from "./db/node/getNodeSettings.js"
 import setNodeSettings from "./db/node/setNodeSettings.js"
 
 import findActor from "./db/actor/findActor.js"
-
-import pushMessage from "./db/chat/pushMessage.js"
 
 interface UserFilter {
 	login?: string;
@@ -46,6 +47,7 @@ export default class DB extends Node {
 		super();
 
 		FS.mkdirSync("./data/files", { recursive: true });
+		FS.mkdirSync("./data/tmp", { recursive: true });
 
 		const doSetupRoutine = !FS.existsSync("./data/database.sqlite");
 
@@ -202,6 +204,7 @@ export default class DB extends Node {
 		this.setListener("updateTopic", updateTopic.bind(this, this.db));
 		this.setListener("deleteTopic", deleteTopic.bind(this, this.db));
 		this.setListener("getTopicById", getTopicById.bind(this, this.db));
+		this.setListener("authTopic", authTopic.bind(this, this.db));
 
 		this.setListener("fetchTitle", fetchTitle.bind(this, this.db));
 		this.setListener("getNodeSettings", getNodeSettings.bind(this, this.db));
@@ -210,6 +213,9 @@ export default class DB extends Node {
 		this.setListener("findActor", findActor.bind(this, this.db));
 
 		this.setListener("pushMessage", pushMessage.bind(this, this.db));
+		this.setListener("fetchMessages", fetchMessages.bind(this, this.db));
+
+		this.setListener("checkAssigned", this.checkAssigned.bind(this));
 	}
 
 	detach () {
@@ -230,83 +236,19 @@ export default class DB extends Node {
 		return this.http_port;
 	}
 
-	// chat
+	checkAssigned (event: Event) {
+		const files = new Set<string>(event.data.data.files);
+		const placeholders = event.data.data.files.map(() => '?').join(',');
 
-	fetchMessages (event: Event) {
-		try {
-			let rows: any[];
+		const rows = this.db.prepare(`SELECT file_path FROM attachments WHERE file_path IN (${placeholders})`).all(event.data.data.files) as { file_path: string; }[];
 
-			if (event.data.data.message_id) {
-				rows = this.db.prepare(`SELECT
-					messages.content,
-					messages.attachments,
-					messages.created_at,
-					actors.display_name
-					FROM messages LEFT JOIN actors ON messages.actor_id=actors.id
-					WHERE topic_id = ?
-					AND messages.id < event.data.data.message_id,
-					ORDER BY messages.id DESC
-					LIMIT ?
-				`).all([event.data.data.topic, event.data.data.limit]);
-			} else {
-				rows = this.db.prepare(`SELECT
-					messages.content,
-					messages.attachments,
-					messages.created_at,
-					actors.display_name
-					FROM messages LEFT JOIN actors ON messages.actor_id=actors.id
-					WHERE topic_id = ?
-					ORDER BY messages.id DESC
-					LIMIT ?
-				`).all([event.data.data.topic, event.data.data.limit]);
-			}
-
-			event.response({
-				command: "fetchMessagesResponse",
-				error: false,
-				data: { rows: rows }
-			});
-		} catch (err: any) {
-			event.response({
-				command: "fetchMessagesResponse",
-				error: true,
-				details: err.toString()
-			});
+		for (const row of rows) {
+			files.delete(row.file_path);
 		}
-	}
 
-	pushMessage (event: Event) {
-		try {
-			this.db.prepare(`INSERT INTO messages (
-				content,
-				attachments,
-				created_at,
-				actor_id,
-				topic_id
-			) VALUES (
-				?,
-				?,
-				?,
-				?,
-				?
-			);`).run([
-				event.data.data.content,
-				event.data.data.attachments,
-				event.data.data.created_at,
-				event.data.data.actor_id,
-				event.data.data.topic_id
-			]);
-
-			event.response({
-				command: "pushMessageResponse",
-				error: false
-			});
-		} catch (err: any) {
-			event.response({
-				command: "pushMessageResponse",
-				error: true,
-				details: err.toString()
-			});
-		}
+		event.response({
+			command: "checkAssignedResponse",
+			data: Array.from(files)
+		});
 	}
 }

@@ -1,6 +1,8 @@
 import { Component } from "@tripod311/splash"
 import View from "./chatMessage.html?raw"
 
+import MessageAttachment from "./messageAttachment.js"
+
 export default class ChatMessage extends Component {
 	protected static readonly timeFormat = new Intl.DateTimeFormat('ru-RU', {
 	    hour: '2-digit',
@@ -19,7 +21,7 @@ export default class ChatMessage extends Component {
 	mounted () {
 		super.mounted();
 
-		const date = new Date(this.state.getProp("created_at"));
+		const date = new Date(this.state.getProp("created_at") * 1000);
 		this.state.setProp("datetime", ChatMessage.timeFormat.format(date) + " " + ChatMessage.dateFormat.format(date));
 
 		if (this.state.getProp("is_mine")) {
@@ -38,6 +40,14 @@ export default class ChatMessage extends Component {
 			this.refs.attachments.style.display = "none";
 		} else {
 			// fill
+
+			for (const link of attachments) {
+				this.slots.attachments.push(new MessageAttachment({ link }));
+			}
 		}
+	}
+
+	get id(): number {
+		return this.state.getProp("id") as number;
 	}
 }

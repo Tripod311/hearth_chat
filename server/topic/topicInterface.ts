@@ -3,6 +3,7 @@ import Actor from "./actor.js"
 
 interface ChunkRequest {
 	offset: number;
+	direction: string;
 	replaceContent: boolean;
 	chunk_size: number;
 }
@@ -97,7 +98,10 @@ export default class TopicInterface extends Node {
 			this.chain(this.dbAddress, {
 				command: "fetchMessages",
 				data: {
-					offset: req.offset
+					topic_id: this.id,
+					offset: req.offset,
+					direction: req.direction,
+					limit: req.chunk_size
 				}
 			}, (response: Event) => {
 				if (response.data.error) {
@@ -105,6 +109,7 @@ export default class TopicInterface extends Node {
 						command: "chunkError",
 						data: {
 							requestedOffset: req.offset,
+							requestedDirection: req.direction,
 							replaceContent: req.replaceContent,
 							details: response.data.details
 						}
@@ -114,6 +119,7 @@ export default class TopicInterface extends Node {
 						command: "chunkResponse",
 						data: {
 							requestedOffset: req.offset,
+							requestedDirection: req.direction,
 							replaceContent: req.replaceContent,
 							messages: response.data.data
 						}
@@ -125,24 +131,32 @@ export default class TopicInterface extends Node {
 
 	pushMessage (actor: Actor, data: { content: string; attachments: string; }) {
 		if (actor.authorized) {
-			this.send(this.dbAddress, {
+			const created_at = Math.floor((Date.now())/1000);
+
+			this.chain(this.dbAddress, {
 				command: "pushMessage",
 				data: {
+					topic_id: this.id,
 					actor_id: actor.id,
-					content: data.content,
-					attachments: data.attachments
-				}
-			});
-			this.notify(JSON.stringify({
-				command: "message",
-				data: {
-					actor_id: actor.id,
-					display_name: actor.display_name,
 					content: data.content,
 					attachments: data.attachments,
-					created_at: (Date.now())/1000
+					created_at: created_at
 				}
-			}));
+			}, (response: Event) => {
+				if (!response.data.error) {
+					this.notify(JSON.stringify({
+						command: "message",
+						data: {
+							id: response.data.data.id,
+							actor_id: actor.id,
+							display_name: actor.display_name,
+							content: data.content,
+							attachments: data.attachments,
+							created_at: created_at
+						}
+					}));
+				}
+			});
 		} else {
 			this.chain(this.dbAddress, {
 				command: "authTopic",
@@ -150,6 +164,8 @@ export default class TopicInterface extends Node {
 					topic_id: this.id,
 					password: data.content
 				}
+			}, (response: Event) => {
+				
 			});
 		}
 	}
