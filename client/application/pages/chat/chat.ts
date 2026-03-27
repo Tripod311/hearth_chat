@@ -144,7 +144,8 @@ export default class ChatPage extends Component {
 				spinner.emit("close");
 				this.bindSocketEvents();
 			};
-			this.socket.onerror = () => {
+			this.socket.onerror = (err: any) => {
+				console.error(err);
 				spinner.emit("close");
 				this.systemMessage("Connection error");
 			};
