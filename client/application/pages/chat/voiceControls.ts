@@ -212,11 +212,17 @@ export default class VoiceControls {
 		});
 
 		this.onmessage!({
-			command: "runConsumer",
-			data: { id: data.consumerId }
+			command: "resumeConsumer",
+			data: { id: data.consumerId, actorId: data.actorId, kind: data.kind }
 		});
+	}
 
-		this.onconsumerready && this.onconsumerready(data.actorId, data.kind);
+	async consumerResumed (data: {id: string; actorId: number; kind: string; }) {
+		if (this.consumers[data.actorId] && this.consumers[data.actorId][data.kind]) {
+			await this.consumers[data.actorId][data.kind].resume();
+
+			this.onconsumerready && this.onconsumerready(data.actorId, data.kind);
+		}
 	}
 
 	getAudioStream (id: string): MediaStream | undefined {

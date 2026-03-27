@@ -123,7 +123,7 @@ export default abstract class Actor extends EventEmitter {
 		delete this.consumers[id];
 	}
 
-	async runConsumer (id: string) {
+	async resumeConsumer (id: string) {
 		await this.consumers[id]?.consumer.resume();
 	}
 

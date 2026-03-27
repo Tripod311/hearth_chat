@@ -64,8 +64,8 @@ export default class WSActor extends Actor {
 				case "createConsumer":
 					this.createConsumer(message.data.actorId, message.data.kind);
 					break;
-				case "runConsumer":
-					this.runConsumer(message.data.id);
+				case "resumeConsumer":
+					this.wsResumeConsumer(message.data);
 				case "deleteConsumer":
 					this.deleteConsumer(message.data.id);
 					break;
@@ -142,6 +142,15 @@ export default class WSActor extends Actor {
 				producerId: consumer.producerId,
 				rtpParameters: consumer.consumer.rtpParameters
 			}
+		}));
+	}
+
+	async wsResumeConsumer (data: { id: string; actorId: number; kind: string; }) {
+		await super.resumeConsumer(data.id);
+
+		this.socket.send(JSON.stringify({
+			command: "consumerResumed",
+			data: data
 		}));
 	}
 

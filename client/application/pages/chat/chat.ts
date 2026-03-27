@@ -247,6 +247,9 @@ export default class ChatPage extends Component {
 			case "consumerCreated":
 				this.voiceControls.consumerCreated(data.data);
 				break;
+			case "consumerResumed":
+				this.voiceControls.consumerResumed(data.data);
+				break;
 			case "mediaUpdate":
 				this.voiceControls.mediaUpdate(data.data)
 				break;
