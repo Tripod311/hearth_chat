@@ -115,7 +115,13 @@ export default class VoiceControls {
 	}
 
 	transportStateChange (state) {
+		console.log(`CONNECTION STATE ${state}`);
 		switch (state) {
+			case "connected":
+				if (this.recvTransport.connectionState === "connected") {
+					this.createConsumers();
+				}
+				break;
 			case "closed":
 			case "failed":
 			case "disconnected":
@@ -130,8 +136,6 @@ export default class VoiceControls {
 			this.connected = true;
 
 			this.onupdate && this.onupdate();
-
-			this.createConsumers();
 		} else if (data.direction === 'recv') {
 			this.promises.recvTransport();
 		}
@@ -190,15 +194,18 @@ export default class VoiceControls {
 			rtpParameters: data.rtpParameters
 		});
 
+		if (!this.consumers[data.actorId]) this.consumers[data.actorId] = {};
 		this.consumers[data.actorId][data.kind] = consumer;
 
 		consumer.on("producerclose", () => {
 			consumer.close();
 			delete this.consumers[data.actorId][data.kind];
+			if (Object.keys(this.consumers[data.actorId]).length === 0) delete this.consumers[data.actorId];
 		});
 		consumer.on("transportclose", () => {
 			consumer.close();
 			delete this.consumers[data.actorId][data.kind];
+			if (Object.keys(this.consumers[data.actorId]).length === 0) delete this.consumers[data.actorId];
 		});
 
 		this.onmessage!({
@@ -206,7 +213,7 @@ export default class VoiceControls {
 			data: { id: data.consumerId }
 		});
 
-		this.onconsumerready && this.onconsumerready(data.consumerId, data.kind);
+		this.onconsumerready && this.onconsumerready(data.actorId, data.kind);
 	}
 
 	getAudioStream (id: string): MediaStream | undefined {

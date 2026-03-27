@@ -226,12 +226,12 @@ export default class TopicInterface extends Node {
 		actor.setRecvTransport(recvTransport);
 	}
 
-	async createConsumer (actor: Actor, data: { actorId: number; kind: string }) {
+	async createConsumer (actor: Actor, data: { actorId: string; kind: string }) {
 		if (actor.transports === null) return;
 
 		const transport = actor.transports.recv;
 
-		const producerActor = Array.from(this.actors).find(a => a.id === data.actorId);
+		const producerActor = Array.from(this.actors).find(a => a.id.toString() === data.actorId);
 
 		if (!producerActor) return;
 

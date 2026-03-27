@@ -4,11 +4,9 @@ import View from "./voiceChat.html?raw"
 import Model from "../../../../model/main.js"
 
 import CloseIcon from "../../../../icons/delete.svg"
-import AudioBlock from "./audioBlock.html?raw"
-import VideoBlock from "./videoBlock.html?raw"
+import Block from "./block.html?raw"
 
-TemplateCache.registerDrop("voiceChatAudio", AudioBlock);
-TemplateCache.registerDrop("voiceChatVideo", VideoBlock);
+TemplateCache.registerDrop("voiceChatBlock", Block);
 
 export default class VoiceChat extends Component {
 	protected static componentName = "VoiceChat";
@@ -20,6 +18,7 @@ export default class VoiceChat extends Component {
 
 	mounted () {
 		super.mounted();
+		window.shit = this;
 
 		this.refs.closeControls.src = CloseIcon;
 		this.refs.closeControls.onclick = this.emit.bind(this, "toggle");
@@ -43,7 +42,7 @@ export default class VoiceChat extends Component {
 		this.opened = false;
 
 		for (const id in this.blocks) {
-			this.blocks[id].video.remove();
+			this.blocks[id].video?.remove();
 			delete this.blocks[id].video;
 		}
 	}
@@ -52,7 +51,7 @@ export default class VoiceChat extends Component {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
-				video: true
+				video: false
 			});
 
 			if (stream) {
@@ -113,7 +112,7 @@ export default class VoiceChat extends Component {
 		for (const id of real) {
 			if (!this.blocks[id]) {
 				this.blocks[id] = {
-					display: TemplateCache.createDrop("voiceChatAudio", { display_name: state[id].display_name }).node
+					display: TemplateCache.createDrop("voiceChatBlock", { display_name: state[id].display_name }).node
 				};
 			}
 
@@ -135,10 +134,7 @@ export default class VoiceChat extends Component {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
 				this.blocks[id].video.className = "w-full h-full object-cover";
-				this.blocks[id].display.remove();
-				this.blocks[id].display = TemplateCache.createDrop("voiceChatVideo", { display_name: state[id].display_name }).node;
 				this.blocks[id].display.appendChild(this.blocks[id].video);
-				this.refs.videos.appendChild(this.blocks[id].display);
 
 				const stream = controls.getVideoStream(id);
 				if (stream) {
@@ -146,10 +142,10 @@ export default class VoiceChat extends Component {
 					this.blocks[id].video.play();
 				}
 			} else if (!state[id].video && this.blocks[id].video) {
-				this.blocks[id].display.remove();
-				this.blocks[id].display = TemplateCache.createDrop("voiceChatAudio", { display_name: state[id].display_name }).node;
-				this.refs.audios.appendChild(this.blocks[id].display);
+				this.blocks[id].video.remove();
 			}
+
+			this.refs.blocks.appendChild(this.blocks[id].display);
 		}
 	}
 
