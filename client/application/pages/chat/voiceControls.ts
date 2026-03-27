@@ -115,12 +115,9 @@ export default class VoiceControls {
 	}
 
 	transportStateChange (state) {
-		console.log(`CONNECTION STATE ${state}`);
 		switch (state) {
 			case "connected":
-				if (this.recvTransport.connectionState === "connected") {
-					this.createConsumers();
-				}
+				console.log("TRANSPORT CONNECTED");
 				break;
 			case "closed":
 			case "failed":
@@ -136,6 +133,8 @@ export default class VoiceControls {
 			this.connected = true;
 
 			this.onupdate && this.onupdate();
+
+			this.createConsumers();
 		} else if (data.direction === 'recv') {
 			this.promises.recvTransport();
 		}

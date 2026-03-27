@@ -51,7 +51,7 @@ export default class VoiceChat extends Component {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
-				video: false
+				video: true
 			});
 
 			if (stream) {
