@@ -161,7 +161,7 @@ export default class VoiceControls {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
-						actorId: actorId,
+						actorId: id,
 						kind: "audio"
 					}
 				});
@@ -170,7 +170,7 @@ export default class VoiceControls {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
-						actorId: actorId,
+						actorId: id,
 						kind: "video"
 					}
 				});
