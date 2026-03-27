@@ -48,10 +48,10 @@ export default class NodeTab extends Component {
 			const val = {
 				name: this.refs.name.value,
 				description: this.refs.description.value,
-				title_page: JSON.parse(this.refs.title_page.value),
+				title_page: JSON.stringify(JSON.parse(this.refs.title_page.value)),
 				http_port: parseInt(this.refs.http_port.value),
 				gate_port: parseInt(this.refs.gate_port.value),
-				ice_candidates: JSON.stringify(JSON.parse(this.refs.ice_candidates.value)),
+				ice_candidates: this.refs.ice_candidates.value.trim().length > 0 ? JSON.stringify(JSON.parse(this.refs.ice_candidates.value)) : null,
 				announced_ip: this.refs.announced_ip.value.trim().length > 0 ? this.refs.announced_ip.value.trim() : null
 			};
 
