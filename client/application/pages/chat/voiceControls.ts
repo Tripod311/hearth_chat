@@ -162,6 +162,8 @@ export default class VoiceControls {
 
 	createConsumers () {
 		for (const id in this.state) {
+			if (id === this.selfId.toString()) continue;
+
 			if (this.state[id].audio && (!this.consumers[id] || !this.consumers[id].audio)) {
 				this.onmessage!({
 					command: "createConsumer",
