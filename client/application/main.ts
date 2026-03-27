@@ -23,6 +23,7 @@ export default class Application extends Component {
 
 	private modals: Modals = new Modals;
 	private navExpanded: boolean = false;
+	private currentPage: string = "";
 
 	mounted () {
 		super.mounted();
@@ -102,24 +103,28 @@ export default class Application extends Component {
 	}
 
 	setPage (type="title", id="") {
-		this.slots.content.clear();
+		if (this.currentPage !== type) {
+			this.currentPage = type;
 
-		switch (type) {
-			case "title":
-				this.slots.content.push(new TitlePage({}));
-				break;
-			case "admin":
-				this.slots.content.push(new AdminPage({}));
-				break;
-			case "account":
-				this.slots.content.push(new AccountPage({}));
-				break;
-			case "topic":
-				this.slots.content.push(new ChatPage({ id: this.state.getProp("topicId") }));
-				break;
-			case "topics":
-				this.slots.content.push(new TopicsPage({}));
-				break;
+			this.slots.content.clear();
+
+			switch (type) {
+				case "title":
+					this.slots.content.push(new TitlePage({}));
+					break;
+				case "admin":
+					this.slots.content.push(new AdminPage({}));
+					break;
+				case "account":
+					this.slots.content.push(new AccountPage({}));
+					break;
+				case "topic":
+					this.slots.content.push(new ChatPage({ id: this.state.getProp("topicId") }));
+					break;
+				case "topics":
+					this.slots.content.push(new TopicsPage({}));
+					break;
+			}
 		}
 	}
 
