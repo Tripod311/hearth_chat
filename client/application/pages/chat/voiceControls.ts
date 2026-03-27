@@ -157,7 +157,7 @@ export default class VoiceControls {
 
 	createConsumers () {
 		for (const id in this.state) {
-			if (this.state[id].audio && !this.consumers[id].audio) {
+			if (this.state[id].audio && (!this.consumers[id] || !this.consumers[id].audio)) {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
@@ -166,7 +166,7 @@ export default class VoiceControls {
 					}
 				});
 			}
-			if (this.state[id].video && !this.consumers[id].video) {
+			if (this.state[id].video && (!this.consumers[id] || !this.consumers[id].video)) {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
