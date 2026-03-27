@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import path from "path"
+import FS from "fs"
 import { Socket } from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context } from "@tripod311/currents"
@@ -69,10 +70,8 @@ export default class API extends Node {
 		this.uuid = uuid;
 		this.port = port;
 
-		let certificates: { key: string; cert: string; ca?: string; } | undefined;
-
 		this.instance = Currents.fromOptions({
-			certificates: certificates
+			certificates: this.fetchCertificates()
 		});
 
 		this.baseChain = [
@@ -274,6 +273,18 @@ export default class API extends Node {
 		this.instance.server.close();
 
 		super.detach();
+	}
+
+	fetchCertificates (): { key: string; cert: string; ca?: string; } | undefined {
+		if (FS.existsSync("./data/certificates")) {
+			return {
+				cert: "./data/certificates/server.cert",
+				key: "./data/certificates/server.key",
+				ca: FS.existsSync("./data/certificates/server.ca") ? "./data/certificates/server.ca" : undefined
+			}
+		}
+
+		return undefined;
 	}
 
 	get ws_server (): WebSocketServer {

@@ -1,3 +1,5 @@
+import mediasoup from "mediasoup"
+import MediasoupController from "../mediasoupController.js"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 
@@ -6,6 +8,12 @@ interface ChunkRequest {
 	direction: string;
 	replaceContent: boolean;
 	chunk_size: number;
+}
+
+interface ActorMediaState {
+	connected: boolean;
+	audio: boolean;
+	video: boolean;
 }
 
 export default class TopicInterface extends Node {
@@ -21,6 +29,10 @@ export default class TopicInterface extends Node {
 
 	private dbAddress!: Address;
 
+	private router!: mediasoup.types.Router;
+	private mediaState: Record<number, ActorMediaState> = {};
+	private mediaStateTimeout?: ReturnType<typeof setTimeout>;
+
 	constructor (id: number, title: string, description: string, guest_access: boolean, password_protected: boolean, author_write_only: boolean, author_id: number) {
 		super();
 		
@@ -31,6 +43,12 @@ export default class TopicInterface extends Node {
 		this.password_protected = password_protected;
 		this.author_write_only = author_write_only;
 		this.author_id = author_id;
+
+		this.createRouter();
+	}
+
+	async createRouter () {
+		this.router = await MediasoupController.createRouter(this.id);
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -42,6 +60,8 @@ export default class TopicInterface extends Node {
 	}
 
 	detach () {
+		clearTimeout(this.mediaStateTimeout);
+
 		for (const actor of this.actors) {
 			actor.kill();
 		}
@@ -54,13 +74,26 @@ export default class TopicInterface extends Node {
 
 		if (!this.password_protected || actor.is_admin) actor.authorized = true;
 
+		this.mediaState[actor.id] = {
+			connected: false,
+			audio: false,
+			video: false
+		}
+
 		actor.on("disconnected", this.disconnectActor.bind(this, actor));
 		actor.on("fetchMessages", this.fetchMessages.bind(this, actor));
 		actor.on("pushMessage", this.pushMessage.bind(this, actor));
+		actor.on("createConsumer", this.createConsumer.bind(this, actor));
+		actor.on("mediaChange", this.updateMediaState.bind(this, actor));
+		if (actor.kind === "ws" || actor.kind === "proxy") {
+			actor.on("createTransport", this.createWebRtcTransport.bind(this, actor));
+		}
 
 		actor.proxy(JSON.stringify({
 			command: "setup",
 			data: {
+				rtpCapabilities: this.router.rtpCapabilities,
+				iceServers: MediasoupController.ice_candidates,
 				topicInfo: {
 					selfId: actor.id,
 					title: this.title,
@@ -74,7 +107,8 @@ export default class TopicInterface extends Node {
 					display_name: a.display_name,
 					is_admin: a.is_admin,
 					is_bot: a.is_bot
-				}})
+				}}),
+				mediaState: this.gatherMediaState()
 			}
 		}));
 
@@ -174,5 +208,83 @@ export default class TopicInterface extends Node {
 		for (const actor of this.actors) {
 			actor.proxy(message);
 		}
+	}
+
+	async createWebRtcTransport (actor: Actor) {
+		const sendTransport = await this.router.createWebRtcTransport({
+			listenIps: [{ ip: "0.0.0.0", announcedIp: MediasoupController.announced_ip }],
+			enableUdp: true,
+			enableTcp: true,
+			preferUdp: true
+		});
+		actor.setSendTransport(sendTransport);
+
+		const recvTransport = await this.router.createWebRtcTransport({
+			listenIps: [{ ip: "0.0.0.0", announcedIp: MediasoupController.announced_ip }],
+			enableUdp: true,
+			enableTcp: true,
+			preferUdp: true
+		});
+		actor.setRecvTransport(recvTransport);
+	}
+
+	async createConsumer (actor: Actor, data: { actorId: number; kind: string }) {
+		if (actor.transports === null) return;
+
+		const transport = actor.transports.recv;
+
+		const producerActor = Array.from(this.actors).find(a => a.id === data.actorId);
+
+		if (!producerActor) return;
+
+		const producer = data.kind === "audio" ? producerActor.audioProducer : producerActor.videoProducer;
+
+		if (!producer) return;
+
+		if (!this.router.canConsume({ producerId: producer.id, rtpCapabilities: this.router.rtpCapabilities })) return;
+
+		const consumer = await transport.consume({
+			producerId: producer.id,
+			rtpCapabilities: this.router.rtpCapabilities,
+			paused: true
+		});
+
+		actor.setConsumer(consumer.id, {
+			consumer: consumer,
+			producerId: producer.id,
+			actorId: producerActor.id,
+			kind: data.kind
+		});
+	}
+
+	gatherMediaState (): Record<number, { display_name: string; audio: boolean; video: boolean; }> {
+		const result: Record<number, { display_name: string; audio: boolean; video: boolean; }> = {};
+
+		for (const actor of this.actors) {
+			const id = actor.id;
+
+			if (this.mediaState[id].connected) {
+				result[id] = {
+					display_name: actor.display_name,
+					video: this.mediaState[id].video,
+					audio: this.mediaState[id].audio
+				};
+			}
+		}
+
+		return result;
+	}
+
+	updateMediaState (actor: Actor, state: ActorMediaState) {
+		clearTimeout(this.mediaStateTimeout);
+
+		this.mediaState[actor.id] = state;
+
+		this.mediaStateTimeout = setTimeout(() => {
+			this.notify(JSON.stringify({
+				command: "mediaUpdate",
+				data: this.gatherMediaState()
+			}));
+		}, 1000);
 	}
 }

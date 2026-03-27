@@ -17,6 +17,9 @@ TemplateCache.registerDrop("chatSystemMessage", SystemMessage);
 TemplateCache.registerDrop("chatSpinnerMessage", SpinnerMessage);
 TemplateCache.registerDrop("attachment", Attachment);
 
+import VoiceChat from "./voiceChat/voiceChat.js"
+import VoiceControls from "./voiceControls.js"
+
 interface TopicInfo {
 	selfId: number;
 	selfName: string;
@@ -25,6 +28,8 @@ interface TopicInfo {
 	password_protected: boolean;
 	authorized: boolean;
 	can_write: boolean;
+	rtpCapabilities: any;
+	iceServers: any;
 }
 
 interface ActorInfo {
@@ -78,6 +83,10 @@ export default class ChatPage extends Component {
 	private atBottom: boolean = true;
 	private pendingBottomMessages: Message[] = [];
 
+	private voiceOpen: boolean = false;
+	private voiceChat!: VoiceChat;
+	private voiceControls!: VoiceControls;
+
 	mounted () {
 		super.mounted();
 
@@ -86,16 +95,27 @@ export default class ChatPage extends Component {
 		this.refs.send.src = SendIcon;
 		this.refs.send.onclick = this.send.bind(this);
 		this.refs.voice.src = PhoneIcon;
+		this.refs.voice.onclick = this.toggleVoiceChat.bind(this);
 		this.refs.attach.src = FileIcon;
 		this.refs.attach.onclick = this.addFile.bind(this);
 		this.refs.fileInput.onchange = this.handleFileInput.bind(this);
 		this.refs.messages.onscroll = this.handleScroll.bind(this);
+
+		this.voiceControls = new VoiceControls();
+		this.voiceControls.onmessage = this.voiceControlsMessage.bind(this);
+		this.voiceChat = new VoiceChat({
+			controls: this.voiceControls
+		});
+		this.voiceChat.on("toggle", this.toggleVoiceChat.bind(this));
+		this.slots.voiceChat.push(this.voiceChat);
 
 		this.makeConnection();
 	}
 
 	unmounted () {
 		this.refs.input.removeEventListener("keyup", this.enterListener);
+		this.socket.close();
+		this.voiceControls.deleteTransport();
 
 		super.unmounted();
 	}
@@ -172,6 +192,7 @@ export default class ChatPage extends Component {
 	}
 
 	handleMessage (e: MessageEvent) {
+		console.log(e.data);
 		const data = JSON.parse(e.data) as { command: string; data: any; };
 
 		switch (data.command) {
@@ -179,10 +200,17 @@ export default class ChatPage extends Component {
 				this.socket.send(JSON.stringify({ command: "pong" }));
 				break;
 			case "setup":
-				this.setup(data.data);
-				if (this.topicInfo.authorized) {
-					this.fetchMessages(-1, true);
-				}
+				this.setup(data.data).then(() => {
+					if (this.topicInfo.authorized) {
+						this.fetchMessages(-1, true);
+					}
+				}, (err: any) => {
+					const notification = Model.getPipe("modals.createNotification").run({
+						message: `Error on setup: ${err.message || err.toString()}`,
+						buttonValue: "Ok"
+					});
+					Model.getPipe("modals.showDialog").run(notification);
+				});
 				break;
 			case "authorize":
 				this.onAuth();
@@ -206,6 +234,21 @@ export default class ChatPage extends Component {
 					this.pendingBottomMessages.push(...data.messages);
 				}
 				break;
+			case "transportCreated":
+				this.voiceControls.transportCreated(data.data);
+				break;
+			case "transportConnected":
+				this.voiceControls.transportConnected(data.data);
+				break;
+			case "producerCreated":
+				this.voiceControls.producerCreated(data.data);
+				break;
+			case "consumerCreated":
+				this.voiceControls.consumerCreated(data.data);
+				break;
+			case "mediaUpdate":
+				this.voiceControls.mediaUpdate(data.data)
+				break;
 		}
 	}
 
@@ -221,7 +264,7 @@ export default class ChatPage extends Component {
 		}
 	}
 
-	setup (data: TopicInfo) {
+	async setup (data: TopicInfo) {
 		this.topicInfo = data.topicInfo;
 		this.connectedActors = data.actors;
 
@@ -230,6 +273,12 @@ export default class ChatPage extends Component {
 		if (this.topicInfo.password_protected && !this.topicInfo.authorized) {
 			this.systemMessage("This topic is password protected. Send correct password to read it.");
 		}
+
+		await this.voiceControls.createDevice();
+		await this.voiceControls.load(data.rtpCapabilities);
+		this.voiceControls.iceServers = data.iceServers;
+		this.voiceControls.selfId = this.topicInfo.selfId;
+		this.voiceControls.mediaUpdate(data.mediaState);
 	}
 
 	onActorConnected (data: ActorInfo) {
@@ -589,5 +638,21 @@ export default class ChatPage extends Component {
 		this.filesToSend.splice(index, 1);
 
 		this.renderFiles();
+	}
+
+	toggleVoiceChat () {
+		this.voiceOpen = !this.voiceOpen;
+
+		if (this.voiceOpen) {
+			this.voiceChat.open();
+		} else {
+			this.voiceChat.close();
+		}
+	}
+
+	voiceControlsMessage (msg: { command: string; data: any; }) {
+		if (this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(JSON.stringify(msg));
+		}
 	}
 }

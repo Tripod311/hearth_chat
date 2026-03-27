@@ -48,6 +48,23 @@ function renderAccountInfo (params: Record<string, string>) {
 	}
 }
 
+function renderTopicsPage (params: Record<string, string>) {
+	if (!(currentComponent instanceof Application)) {
+		if (currentComponent !== null) currentComponent.unmount();
+
+		currentComponent = new Application({
+			proxy: params.proxy || "self",
+			page: "topics"
+		});
+		currentComponent.mount(root);
+	} else {
+		currentComponent.update({
+			proxy: params.proxy || "self",
+			page: "topics"
+		});
+	}
+}
+
 function renderTopic (params: Record<string, string>) {
 	if (!(currentComponent instanceof Application)) {
 		if (currentComponent !== null) currentComponent.unmount();
@@ -109,6 +126,7 @@ function fallback () {
 router.add("/", redirectToTitle);
 router.add("/:proxy/title", renderTitle);
 router.add("/:proxy/topic/:topicId", renderTopic);
+router.add("/:proxy/topics", renderTopicsPage);
 router.add("/account", renderAccountInfo);
 router.add("/admin", renderAdmin);
 router.add("/auth", renderAuth);

@@ -42,6 +42,8 @@ export default class DB extends Node {
 	private node_id: string;
 	private gate_port: number;
 	private http_port: number;
+	private announced_ip?: string | null;
+	private ice_candidates?: string | null;
 
 	constructor () {
 		super();
@@ -102,7 +104,9 @@ export default class DB extends Node {
 				http_port INTEGER,
 				gate_port INTEGER,
 				description TEXT,
-				title_page TEXT
+				title_page TEXT,
+				ice_candidates TEXT,
+				announced_ip TEXT
 			);`);
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS pending_related (
@@ -166,11 +170,13 @@ export default class DB extends Node {
 			this.gate_port = 14567;
 			this.http_port = 8080;
 		} else {
-			const row = this.db.prepare("SELECT uuid, http_port, gate_port FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; };
+			const row = this.db.prepare("SELECT uuid, http_port, gate_port, announced_ip, ice_candidates FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; announced_ip: string | null; ice_candidates: string | null };
 
 			this.node_id = row.uuid;
 			this.gate_port = row.gate_port;
 			this.http_port = row.http_port;
+			this.announced_ip = row.announced_ip;
+			this.ice_candidates = row.ice_candidates;
 		}
 
 		Log.success("Database initialized", 0)
@@ -234,6 +240,13 @@ export default class DB extends Node {
 
 	get httpPort () {
 		return this.http_port;
+	}
+
+	get mediasoupParams (): { announced_ip?: string; ice_candidates?: string; } {
+		return {
+			announced_ip: this.announced_ip || undefined,
+			ice_candidates: this.ice_candidates || undefined
+		}
 	}
 
 	checkAssigned (event: Event) {

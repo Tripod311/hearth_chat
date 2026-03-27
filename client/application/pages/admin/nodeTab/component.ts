@@ -35,6 +35,8 @@ export default class NodeTab extends Component {
 			this.refs.title_page.value = response.data.title_page;
 			this.refs.http_port.value = response.data.http_port;
 			this.refs.gate_port.value = response.data.gate_port;
+			this.refs.ice_candidates.value = response.data.ice_candidates;
+			this.refs.announced_ip.value = response.data.announced_ip;
 		}
 	}
 
@@ -48,7 +50,9 @@ export default class NodeTab extends Component {
 				description: this.refs.description.value,
 				title_page: JSON.parse(this.refs.title_page.value),
 				http_port: parseInt(this.refs.http_port.value),
-				gate_port: parseInt(this.refs.gate_port.value)
+				gate_port: parseInt(this.refs.gate_port.value),
+				ice_candidates: JSON.stringify(JSON.parse(this.refs.ice_candidates.value)),
+				announced_ip: this.refs.announced_ip.value.trim().length > 0 ? this.refs.announced_ip.value.trim() : null
 			};
 
 			if (isNaN(val.http_port) || val.http_port < 0 || isNaN(val.gate_port) || val.gate_port < 0) throw new Error("Invalid port value");

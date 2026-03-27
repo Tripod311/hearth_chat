@@ -6,6 +6,8 @@ interface Input {
 	title_page: string;
 	http_port: number;
 	gate_port: number;
+	ice_candidates: string;
+	announced_ip: string | null;
 }
 
 interface Output {

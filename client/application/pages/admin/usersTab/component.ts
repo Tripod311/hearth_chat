@@ -5,6 +5,7 @@ import Model from "../../../../model/main.js"
 
 import SetPasswordDialog from "./dialogs/setPasswordDialog.js"
 import CreateUserDialog from "./dialogs/createUserDialog.js"
+import CreateInviteDialog from "./dialogs/createInviteDialog.js"
 import EditUserDialog from "./dialogs/editUserDialog.js"
 
 interface UserData {
@@ -124,11 +125,10 @@ export default class UsersTab extends Component {
 			});
 			Model.getPipe("modals.showDialog").run(notification);
 		} else {
-			const notification = Model.getPipe("modals.createNotification").run({
-				message: `Invite link ${window.location.origin}/invite/${response.invite}`,
-				buttonValue: "Ok"
+			const dlg = new CreateInviteDialog({
+				link: `${window.location.origin}/invite/${response.invite}`
 			});
-			Model.getPipe("modals.showDialog").run(notification);
+			Model.getPipe("modals.showDialog").run(dlg);
 		}
 	}
 

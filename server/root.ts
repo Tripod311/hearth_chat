@@ -7,6 +7,7 @@ import Gate from "./gate.js"
 import InviteManager from "./inviteManager.js"
 import TopicManager from "./topic/topicManager.js"
 import UploadsTracker from "./uploadsTracker.js"
+import MediasoupController from "./mediasoupController.js"
 
 export default class Root extends Node {
 	private db: DB;
@@ -27,6 +28,10 @@ export default class Root extends Node {
 		this.invites = new InviteManager();
 		this.topicManager = new TopicManager();
 		this.uploadsTracker = new UploadsTracker();
+
+		MediasoupController.announced_ip = this.db.mediasoupParams.announced_ip;
+		MediasoupController.ice_candidates = this.db.mediasoupParams.ice_candidates;
+		MediasoupController.setup();
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -43,7 +48,9 @@ export default class Root extends Node {
 
 	detach () {
 		this.uploadsTracker.forceCheck().then(() => {
-			super.detach();
+			MediasoupController.shutdown().then(() => {
+				super.detach();
+			});
 		})
 	}
 }

@@ -19,6 +19,14 @@
 		<span class="text-lg">Gate port (manual restart required)</span>
 		<input data-ref="gate_port" type="number" class="w-full p-2 border border-default bg-white text-black rounded-xl" />
 	</div>
+	<div class="p-2 rounded-xl border border-default flex flex-col">
+		<span class="text-lg">ICE candidates (manual restart required)</span>
+		<textarea data-ref="ice_candidates" class="w-full p-2 border border-default bg-white text-black rounded-xl min-h-[300px]"></textarea>
+	</div>
+	<div class="p-2 rounded-xl border border-default flex flex-col">
+		<span class="text-lg">Announced IP (manual restart required)</span>
+		<input data-ref="announced_ip" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl" />
+	</div>
 	<div class="w-full flex flex-row gap-2 justify-center">
 		<div data-ref="submit" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Submit</div>
 	</div>
