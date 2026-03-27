@@ -43,8 +43,6 @@ export default class TopicInterface extends Node {
 		this.password_protected = password_protected;
 		this.author_write_only = author_write_only;
 		this.author_id = author_id;
-
-		this.createRouter();
 	}
 
 	async createRouter () {

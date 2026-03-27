@@ -70,7 +70,9 @@ export default class TopicManager extends Node {
 						response.data.data.author_id
 					);
 					this.addChild(topic_id.toString(), this.topics[topic_id]);
-					resolve();
+					this.topics[topic_id].createRouter().then(() => {
+						resolve();
+					});
 				}
 			})
 		});
