@@ -26,6 +26,7 @@ export default class VoiceChat extends Component {
 		this.refs.connect.onclick = this.onConnect.bind(this);
 
 		this.state.getProp("controls").onupdate = this.onUpdate.bind(this);
+		this.state.getProp("controls").onconsumerready = this.setConsumer.bind(this);
 	}
 
 	open () {
@@ -118,9 +119,13 @@ export default class VoiceChat extends Component {
 
 			if (state[id].audio && !this.blocks[id].audio) {
 				this.blocks[id].audio = document.createElement("audio");
-				this.blocks[id].audio.srcObject = controls.getAudioStream(id);
 				this.refs.audioDump.appendChild(this.blocks[id].audio);
-				this.blocks[id].audio.play();
+
+				const stream = controls.getAudioStream(id);
+				if (stream) {
+					this.blocks[id].audio.srcObject = stream;
+					this.blocks[id].audio.play();
+				}
 			} else if (!state[id].audio && this.blocks[id].audio) {
 				this.blocks[id].audio.remove();
 				delete this.blocks[id].audio;
@@ -129,17 +134,33 @@ export default class VoiceChat extends Component {
 			if (state[id].video && !this.blocks[id].video) {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
-				this.blocks[id].video.srcObject = controls.getVideoStream(id);
 				this.blocks[id].video.className = "w-full h-full object-cover";
 				this.blocks[id].display.remove();
 				this.blocks[id].display = TemplateCache.createDrop("voiceChatVideo", { display_name: state[id].display_name }).node;
 				this.blocks[id].display.appendChild(this.blocks[id].video);
 				this.refs.videos.appendChild(this.blocks[id].display);
-				this.blocks[id].video.play();
+
+				const stream = controls.getVideoStream(id);
+				if (stream) {
+					this.blocks[id].video.srcObject = stream;
+					this.blocks[id].video.play();
+				}
 			} else if (!state[id].video && this.blocks[id].video) {
 				this.blocks[id].display.remove();
 				this.blocks[id].display = TemplateCache.createDrop("voiceChatAudio", { display_name: state[id].display_name }).node;
 				this.refs.audios.appendChild(this.blocks[id].display);
+			}
+		}
+	}
+
+	setConsumer (id: number, kind: string) {
+		if (this.blocks[id]) {
+			if (kind === "audio" && this.blocks[id].audio !== undefined) {
+				this.blocks[id].audio.srcObject = this.state.getProp("controls").getAudioStream(id);
+				this.blocks[id].audio.play();
+			} else if (kind === "video" && this.blocks[id].video !== undefined) {
+				this.blocks[id].video.srcObject = this.state.getProp("controls").getAudioStream(id);
+				this.blocks[id].video.play();
 			}
 		}
 	}

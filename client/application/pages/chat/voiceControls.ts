@@ -18,6 +18,7 @@ export default class VoiceControls {
 	public connected: boolean = false;
 	public state: ChatState = {};
 	public onupdate?: () => void;
+	public onconsumerready?: (id: number, kind: string) => void;
 	public onmessage!: (msg: { command: string; data: any }) => void;
 
 	constructor () {
@@ -129,6 +130,8 @@ export default class VoiceControls {
 			this.connected = true;
 
 			this.onupdate && this.onupdate();
+
+			this.createConsumers();
 		} else if (data.direction === 'recv') {
 			this.promises.recvTransport();
 		}
@@ -154,7 +157,7 @@ export default class VoiceControls {
 
 	createConsumers () {
 		for (const id in this.state) {
-			if (this.state[id].audio) {
+			if (this.state[id].audio && !this.consumers[id].audio) {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
@@ -163,7 +166,7 @@ export default class VoiceControls {
 					}
 				});
 			}
-			if (this.state[id].video) {
+			if (this.state[id].video && !this.consumers[id].video) {
 				this.onmessage!({
 					command: "createConsumer",
 					data: {
@@ -202,6 +205,8 @@ export default class VoiceControls {
 			command: "runConsumer",
 			data: { id: data.consumerId }
 		});
+
+		this.onconsumerready && this.onconsumerready(data.consumerId, data.kind);
 	}
 
 	getAudioStream (id: string): MediaStream | undefined {
