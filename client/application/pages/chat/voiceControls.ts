@@ -197,6 +197,11 @@ export default class VoiceControls {
 			consumer.close();
 			delete this.consumers[data.actorId][data.kind];
 		});
+
+		this.onmessage!({
+			command: "runConsumer",
+			data: { id: data.consumerId }
+		});
 	}
 
 	getAudioStream (id: string): MediaStream | undefined {
