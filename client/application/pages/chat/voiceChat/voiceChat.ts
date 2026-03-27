@@ -18,7 +18,6 @@ export default class VoiceChat extends Component {
 
 	mounted () {
 		super.mounted();
-		window.shit = this;
 
 		this.refs.closeControls.src = CloseIcon;
 		this.refs.closeControls.onclick = this.emit.bind(this, "toggle");
@@ -51,7 +50,7 @@ export default class VoiceChat extends Component {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
-				video: true
+				video: false
 			});
 
 			if (stream) {
@@ -155,7 +154,7 @@ export default class VoiceChat extends Component {
 				this.blocks[id].audio.srcObject = this.state.getProp("controls").getAudioStream(id);
 				this.blocks[id].audio.play();
 			} else if (kind === "video" && this.blocks[id].video !== undefined) {
-				this.blocks[id].video.srcObject = this.state.getProp("controls").getAudioStream(id);
+				this.blocks[id].video.srcObject = this.state.getProp("controls").getVideoStream(id);
 				this.blocks[id].video.play();
 			}
 		}

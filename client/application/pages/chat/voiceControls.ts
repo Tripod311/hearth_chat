@@ -144,6 +144,8 @@ export default class VoiceControls {
 		this.state = state;
 
 		this.onupdate && this.onupdate();
+
+		this.createConsumers();
 	}
 
 	async createProducers () {
