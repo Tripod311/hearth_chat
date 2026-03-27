@@ -71,6 +71,7 @@ export default class API extends Node {
 		this.port = port;
 
 		this.instance = Currents.fromOptions({
+			forceHTTPVersion: 1,
 			certificates: this.fetchCertificates()
 		});
 
