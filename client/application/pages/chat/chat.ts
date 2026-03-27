@@ -280,7 +280,7 @@ export default class ChatPage extends Component {
 
 		await this.voiceControls.createDevice();
 		await this.voiceControls.load(data.rtpCapabilities);
-		this.voiceControls.iceServers = data.iceServers;
+		this.voiceControls.iceServers = JSON.parse(data.iceServers);
 		this.voiceControls.selfId = this.topicInfo.selfId;
 		this.voiceControls.mediaUpdate(data.mediaState);
 	}
