@@ -88,6 +88,50 @@ export default class VoiceChat extends Component {
 		if (this.opened) this.fill();
 	}
 
+	fillAudio () {
+		const controls = this.state.getProp("controls");
+		const state = controls.state;
+
+		// delete disconnected
+		const toDelete = new Set(Object.keys(this.blocks));
+		const real = new Set(Object.keys(state));
+
+		for (const id of real) {
+			toDelete.delete(id);
+		}
+
+		for (const id of toDelete) {
+			this.blocks[id].audio?.remove();
+			this.blocks[id].display.remove();
+			delete this.blocks[id];
+		}
+
+		// create new blocks
+		for (const id of real) {
+			if (!this.blocks[id]) {
+				this.blocks[id] = {
+					display: TemplateCache.createDrop("voiceChatBlock", { display_name: state[id].display_name }).node
+				};
+			}
+
+			if (state[id].audio) {
+				this.blocks[id].audio?.remove();
+
+				this.blocks[id].audio = document.createElement("audio");
+				this.refs.audioDump.appendChild(this.blocks[id].audio);
+
+				const stream = controls.getAudioStream(id);
+				if (stream) {
+					this.blocks[id].audio.srcObject = stream;
+					this.blocks[id].audio.play();
+				}
+			} else if (!state[id].audio) {
+				this.blocks[id].audio?.remove();
+				delete this.blocks[id].audio;
+			}
+		}
+	}
+
 	fill () {
 		const controls = this.state.getProp("controls");
 		const state = controls.state;
@@ -102,7 +146,6 @@ export default class VoiceChat extends Component {
 
 		for (const id of toDelete) {
 			this.blocks[id].audio?.remove();
-			this.blocks[id].video?.remove();
 			this.blocks[id].display.remove();
 			delete this.blocks[id];
 		}
@@ -115,7 +158,9 @@ export default class VoiceChat extends Component {
 				};
 			}
 
-			if (state[id].audio && !this.blocks[id].audio) {
+			if (state[id].audio) {
+				this.blocks[id].audio?.remove();
+
 				this.blocks[id].audio = document.createElement("audio");
 				this.refs.audioDump.appendChild(this.blocks[id].audio);
 
@@ -124,12 +169,12 @@ export default class VoiceChat extends Component {
 					this.blocks[id].audio.srcObject = stream;
 					this.blocks[id].audio.play();
 				}
-			} else if (!state[id].audio && this.blocks[id].audio) {
-				this.blocks[id].audio.remove();
+			} else if (!state[id].audio) {
+				this.blocks[id].audio?.remove();
 				delete this.blocks[id].audio;
 			}
 
-			if (state[id].video && !this.blocks[id].video) {
+			if (state[id].video) {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
 				this.blocks[id].video.className = "w-full h-full object-cover";
@@ -140,23 +185,19 @@ export default class VoiceChat extends Component {
 					this.blocks[id].video.srcObject = stream;
 					this.blocks[id].video.play();
 				}
-			} else if (!state[id].video && this.blocks[id].video) {
-				this.blocks[id].video.remove();
+			} else if (!state[id].video) {
+				this.blocks[id].video?.remove();
 			}
 
 			this.refs.blocks.appendChild(this.blocks[id].display);
 		}
 	}
 
-	setConsumer (id: number, kind: string) {
-		if (this.blocks[id]) {
-			if (kind === "audio" && this.blocks[id].audio !== undefined) {
-				this.blocks[id].audio.srcObject = this.state.getProp("controls").getAudioStream(id);
-				this.blocks[id].audio.play();
-			} else if (kind === "video" && this.blocks[id].video !== undefined) {
-				this.blocks[id].video.srcObject = this.state.getProp("controls").getVideoStream(id);
-				this.blocks[id].video.play();
-			}
+	setConsumer (consumerId: string) {
+		if (this.opened) {
+			this.fill();
+		} else {
+			this.fillAudio();
 		}
 	}
 }

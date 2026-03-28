@@ -2,11 +2,8 @@ import mediasoup from "mediasoup"
 import { WebSocket } from "ws"
 import { Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
-import type { ConsumerData } from "./actor.js"
 
 export default class WSActor extends Actor {
-	public kind: string = "ws";
-
 	private socket: WebSocket;
 	private timeout?: ReturnType<typeof setTimeout>;
 
@@ -28,7 +25,7 @@ export default class WSActor extends Actor {
 		super.kill();
 	}
 
-	handleMessage (data: Buffer) {
+	async handleMessage (data: Buffer) {
 		const raw = data.toString();
 
 		try {
@@ -47,27 +44,28 @@ export default class WSActor extends Actor {
 					this.emit("fetchMessages", message.data);
 					break;
 				case "createTransport":
-					this.emit("createTransport");
+					await this.createTransports();
 					break;
 				case "connectTransport":
-					this.connectTransport(message.data);
+					await this.connectTransport(message.data.id, message.data.dtlsParameters);
 					break;
 				case "deleteTransport":
-					this.deleteTransport();
+					await this.deleteTransports();
 					break;
 				case "createProducer":
-					this.createProducer(message.data.kind, message.data.rtpParameters);
+					await this.createProducer(message.data.kind, message.data.rtpParameters);
 					break;
 				case "deleteProducer":
-					this.deleteProducer(message.data.kind);
+					await this.deleteProducer(message.data.kind);
 					break;
 				case "createConsumer":
-					this.createConsumer(message.data.actorId, message.data.kind);
+					await this.createConsumer(message.data.producerId, message.data.rtpCapabilities);
 					break;
 				case "resumeConsumer":
-					this.wsResumeConsumer(message.data);
+					await this.resumeConsumer(message.data.id);
+					break;
 				case "deleteConsumer":
-					this.deleteConsumer(message.data.id);
+					await this.deleteConsumer(message.data.id);
 					break;
 			}
 		} catch (err: any) {
@@ -77,7 +75,7 @@ export default class WSActor extends Actor {
 
 	handleClose () {
 		clearTimeout(this.timeout);
-		this.deleteTransport();
+		this.deleteTransports();
 		this.emit("disconnected");
 	}
 
@@ -100,91 +98,120 @@ export default class WSActor extends Actor {
 		this.emit("disconnected");
 	}
 
-	setSendTransport (transport: mediasoup.types.Transport) {
-		super.setSendTransport(transport);
+	async createTransports () {
+		await super.createSendTransport();
+		await super.createRecvTransport();
 
 		this.socket.send(JSON.stringify({
 			command: "transportCreated",
 			data: {
-				direction: "send",
-				id: transport.id,
-				iceParameters: (transport as mediasoup.types.WebRtcTransport).iceParameters,
-				iceCandidates: (transport as mediasoup.types.WebRtcTransport).iceCandidates,
-				dtlsParameters: (transport as mediasoup.types.WebRtcTransport).dtlsParameters
+				send: {
+					id: this.sendTransport,
+					...this.media.webrtcTransportInfo(this.sendTransport!)
+				},
+				recv: {
+					id: this.recvTransport,
+					...this.media.webrtcTransportInfo(this.recvTransport!)
+				}
 			}
 		}));
 	}
 
-	setRecvTransport (transport: mediasoup.types.Transport) {
-		super.setRecvTransport(transport);
+	async deleteTransports () {
+		await super.deleteSendTransport();
+		await super.deleteRecvTransport();
 
 		this.socket.send(JSON.stringify({
-			command: "transportCreated",
-			data: {
-				direction: "recv",
-				id: transport.id,
-				iceParameters: (transport as mediasoup.types.WebRtcTransport).iceParameters,
-				iceCandidates: (transport as mediasoup.types.WebRtcTransport).iceCandidates,
-				dtlsParameters: (transport as mediasoup.types.WebRtcTransport).dtlsParameters
-			}
+			command: "transportDeleted"
 		}));
 	}
 
-	setConsumer (id: string, consumer: ConsumerData) {
-		super.setConsumer(id, consumer);
+	async connectTransport (id: string, dtlsParameters: any) {
+		await this.media.connectTransport(id, dtlsParameters);
+
+		this.socket.send(JSON.stringify({
+			command: "transportConnected",
+			data: { id }
+		}));
+	}
+
+	async createProducer (kind: string, rtpParameters: any): Promise<string> {
+		const id =await super.createProducer(kind, rtpParameters);
+
+		this.socket.send(JSON.stringify({
+			command: "producerCreated",
+			data: { kind, id }
+		}))
+
+		return id
+	}
+
+	async deleteProducer (kind: string) {
+		await super.deleteProducer(kind);
+
+		this.socket.send(JSON.stringify({
+			command: "producerDeleted",
+			data: { kind }
+		}));
+	}
+
+	async pauseProducer (kind: string) {
+		await super.pauseProducer(kind);
+
+		this.socket.send(JSON.stringify({
+			command: "producerPaused",
+			data: { kind }
+		}));
+	}
+
+	async resumeProducer (kind: string) {
+		await super.resumeProducer(kind);
+
+		this.socket.send(JSON.stringify({
+			command: "producerResumed",
+			data: { kind }
+		}));
+	}
+
+	async createConsumer (producerId: string, rtpCapabilities: any): Promise<string> {
+		const id = await super.createConsumer(producerId, rtpCapabilities);
 
 		this.socket.send(JSON.stringify({
 			command: "consumerCreated",
 			data: {
-				actorId: consumer.actorId,
-				kind: consumer.kind,
+				producerId: producerId,
 				consumerId: id,
-				producerId: consumer.producerId,
-				rtpParameters: consumer.consumer.rtpParameters
+				...this.media.consumerParameters(id)
 			}
+		}));
+
+		return id
+	}
+
+	async deleteConsumer (id: string) {
+		await super.deleteConsumer(id);
+
+		this.socket.send(JSON.stringify({
+			command: "consumerDeleted",
+			data: { id }
 		}));
 	}
 
-	async wsResumeConsumer (data: { id: string; actorId: number; kind: string; }) {
-		await super.resumeConsumer(data.id);
+	async pauseConsumer (id: string) {
+		await super.pauseConsumer(id);
+
+		this.socket.send(JSON.stringify({
+			command: "consumerPaused",
+			data: { id }
+		}));
+	}
+
+	async resumeConsumer (id: string) {
+		await super.resumeConsumer(id);
 
 		this.socket.send(JSON.stringify({
 			command: "consumerResumed",
-			data: data
+			data: { id }
 		}));
-	}
-
-	async createProducer (kind: any, rtpParameters: any) {
-		await super.createProducer(kind, rtpParameters);
-
-		if (kind === "audio") {
-			this.socket.send(JSON.stringify({
-				command: "producerCreated",
-				data: { kind: "audio", id: this.producers.audio!.id }
-			}));
-		} else if (kind === "video") {
-			this.socket.send(JSON.stringify({
-				command: "producerCreated",
-				data: { kind: "video", id: this.producers.video!.id }
-			}));
-		}
-	}
-
-	async connectTransport (params: { id: any; dtlsParameters: any }) {
-		if (this.sendTransport && this.sendTransport.id === params.id) {
-			await this.sendTransport.connect({ dtlsParameters: params.dtlsParameters });
-			this.socket.send(JSON.stringify({
-				command: "transportConnected",
-				data: { direction: 'send' }
-			}));
-		}
-
-		if (this.recvTransport && this.recvTransport.id === params.id) {
-			await this.recvTransport.connect({ dtlsParameters: params.dtlsParameters });
-			this.socket.send(JSON.stringify({
-				command: "transportConnected",
-				data: { direction: 'recv' }
-			}));
-		}
 	}
 }

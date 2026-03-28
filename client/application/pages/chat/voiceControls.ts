@@ -1,6 +1,13 @@
 import { Device, SendTransport, RecvTransport, Producer, Consumer } from "mediasoup-client"
 
-type ChatState = Record<number, { display_name: string; audio: boolean; video: boolean; }>;
+interface TransportInfo {
+	id: string;
+	iceCandidates: any;
+	iceParameters: any;
+	dtlsParameters: any;
+}
+
+type ChatState = Record<number, { display_name: string; audio?: string; video?: string; }>;
 
 export default class VoiceControls {
 	public iceServers: any;
@@ -12,8 +19,9 @@ export default class VoiceControls {
 
 	private stream?: MediaStream;
 	private producers: { audio?: Producer; video?: Producer; } = {};
-	private consumers: Record<number, { audio?: Consumer; video?: Consumer; }> = {};
-	private promises: { recvTransport?: () => void; sendTransport?: () => void; audio?: (id: string) => string; video?: (id: string) => string; } = {};
+	private consumers: Record<string, Consumer> = {};
+	private producerConsumerMap: Record<string, string> = {};
+	private pending: Record<string, (data:any) => void> = {};
 
 	public connected: boolean = false;
 	public state: ChatState = {};
@@ -42,9 +50,8 @@ export default class VoiceControls {
 	deleteTransport () {
 		this.onmessage({ command: "deleteTransport" });
 
-		this.producers.audio?.close();
-		this.producers.video?.close();
 		this.producers = {};
+		this.consumers = {};
 
 		this.sendTransport?.close();
 		this.recvTransport?.close();
@@ -55,69 +62,65 @@ export default class VoiceControls {
 		this.onupdate && this.onupdate();
 	}
 
-	async transportCreated (data: { direction: 'recv' | 'send'; id: any; iceParameters: any; iceCandidates: any; dtlsParameters: any }) {
-		if (data.direction === 'recv') {
-			this.recvTransport = this.device.createRecvTransport({
-				iceServers: this.iceServers,
-				id: data.id,
-				iceParameters: data.iceParameters,
-				iceCandidates: data.iceCandidates,
-				dtlsParameters: data.dtlsParameters
+	async transportCreated (data: { send: TransportInfo; recv: TransportInfo; }) {
+		this.recvTransport = this.device.createRecvTransport({
+			iceServers: this.iceServers,
+			id: data.recv.id,
+			iceParameters: data.recv.iceParameters,
+			iceCandidates: data.recv.iceCandidates,
+			dtlsParameters: data.recv.dtlsParameters
+		});
+		this.recvTransport.on('connect', (data: any, callback: any, errback: any) => {
+			this.onmessage({
+				command: "connectTransport",
+				data: {
+					id: this.recvTransport.id,
+					dtlsParameters: data.dtlsParameters
+				}
 			});
-			this.recvTransport.on('connect', (data: any, callback: any, errback: any) => {
-				this.onmessage({
-					command: "connectTransport",
-					data: {
-						id: this.recvTransport.id,
-						dtlsParameters: data.dtlsParameters
-					}
-				});
-				
-				this.promises.recvTransport = callback;
-			});
-			this.recvTransport.on("connectionstatechange", this.transportStateChange.bind(this));
-		} else if (data.direction === 'send') {
-			this.sendTransport = this.device.createSendTransport({
-				iceServers: this.iceServers,
-				id: data.id,
-				iceParameters: data.iceParameters,
-				iceCandidates: data.iceCandidates,
-				dtlsParameters: data.dtlsParameters
-			});
-			this.sendTransport.on('connect', (data: any, callback: any, errback: any) => {
-				this.onmessage({
-					command: "connectTransport",
-					data: {
-						id: this.sendTransport.id,
-						dtlsParameters: data.dtlsParameters
-					}
-				});
-				
-				this.promises.sendTransport = callback;
-			});
-			this.sendTransport.on('produce', (data: any, callback: any, errback: any) => {
-				this.onmessage({
-					command: "createProducer",
-					data: {
-						kind: data.kind,
-						rtpParameters: data.rtpParameters
-					}
-				});
+			
+			this.pending["recvTransport"] = callback;
+		});
+		this.recvTransport.on("connectionstatechange", this.transportStateChange.bind(this, "recv"));
 
-				this.promises[data.kind] = callback;
+		this.sendTransport = this.device.createSendTransport({
+			iceServers: this.iceServers,
+			id: data.send.id,
+			iceParameters: data.send.iceParameters,
+			iceCandidates: data.send.iceCandidates,
+			dtlsParameters: data.send.dtlsParameters
+		});
+		this.sendTransport.on('connect', (data: any, callback: any, errback: any) => {
+			this.onmessage({
+				command: "connectTransport",
+				data: {
+					id: this.sendTransport.id,
+					dtlsParameters: data.dtlsParameters
+				}
 			});
-			this.sendTransport.on("connectionstatechange", this.transportStateChange.bind(this));
-		}
+			
+			this.pending["sendTransport"] = callback;
+		});
+		this.sendTransport.on('produce', (data: any, callback: any, errback: any) => {
+			this.onmessage({
+				command: "createProducer",
+				data: {
+					kind: data.kind,
+					rtpParameters: data.rtpParameters
+				}
+			});
 
-		if (this.recvTransport && this.sendTransport) {
-			await this.createProducers();
-		}
+			this.pending[`producer.${data.kind}`] = callback;
+		});
+		this.sendTransport.on("connectionstatechange", this.transportStateChange.bind(this, "send"));
+
+		await this.createProducers();
 	}
 
-	transportStateChange (state) {
+	transportStateChange (tag: string, state: any) {
 		switch (state) {
 			case "connected":
-				console.log("TRANSPORT CONNECTED");
+				console.log(`TRANSPORT CONNECTED (${tag})`);
 				break;
 			case "closed":
 			case "failed":
@@ -127,16 +130,18 @@ export default class VoiceControls {
 		}
 	}
 
-	transportConnected (data: { direction: 'send' | 'recv' }) {
-		if (data.direction === 'send') {
-			this.promises.sendTransport();
+	transportConnected (data: { id: string }) {
+		if (data.id === this.sendTransport.id) {
+			this.pending["sendTransport"]();
+			delete this.pending["sendTransport"];
 			this.connected = true;
 
 			this.onupdate && this.onupdate();
 
 			this.createConsumers();
-		} else if (data.direction === 'recv') {
-			this.promises.recvTransport();
+		} else if (data.id === this.recvTransport.id) {
+			this.pending["recvTransport"]();
+			delete this.pending["recvTransport"];
 		}
 	}
 
@@ -145,7 +150,7 @@ export default class VoiceControls {
 
 		this.onupdate && this.onupdate();
 
-		this.createConsumers();
+		if (this.connected) this.createConsumers();
 	}
 
 	async createProducers () {
@@ -164,32 +169,47 @@ export default class VoiceControls {
 		for (const id in this.state) {
 			if (id === this.selfId.toString()) continue;
 
-			if (this.state[id].audio && (!this.consumers[id] || !this.consumers[id].audio)) {
-				this.onmessage!({
-					command: "createConsumer",
-					data: {
-						actorId: id,
-						kind: "audio"
-					}
-				});
+			if (this.state[id].audio) {
+				const producerId = this.state[id].audio;
+
+				if (!this.producerConsumerMap[producerId]) {
+					this.producerConsumerMap[producerId] = "audio";
+
+					this.onmessage!({
+						command: "createConsumer",
+						data: {
+							producerId: producerId,
+							rtpCapabilities: this.device.rtpCapabilities
+						}
+					});
+				}
 			}
-			if (this.state[id].video && (!this.consumers[id] || !this.consumers[id].video)) {
-				this.onmessage!({
-					command: "createConsumer",
-					data: {
-						actorId: id,
-						kind: "video"
-					}
-				});
+
+			if (this.state[id].video) {
+				const producerId = this.state[id].video;
+
+				if (!this.producerConsumerMap[producerId]) {
+					this.producerConsumerMap[producerId] = "video";
+
+					this.onmessage!({
+						command: "createConsumer",
+						data: {
+							producerId: producerId,
+							rtpCapabilities: this.device.rtpCapabilities
+						}
+					});
+				}
 			}
 		}
 	}
 
 	producerCreated (data: { kind: string; id: string; }) {
-		this.promises[data.kind]({ id: data.id });
+		const cb = this.pending[`producer.${data.kind}`];
+		cb && cb({ id: data.id });
+		delete this.pending[`producer.${data.kind}`];
 	}
 
-	async consumerCreated (data: { actorId: number; consumerId: string; producerId: string; kind: string; rtpParameters: any; }) {
+	async consumerCreated (data: { consumerId: string; producerId: string; kind: string; rtpParameters: any; }) {
 		const consumer = await this.recvTransport!.consume({
 			id: data.consumerId,
 			producerId: data.producerId,
@@ -197,44 +217,52 @@ export default class VoiceControls {
 			rtpParameters: data.rtpParameters
 		});
 
-		if (!this.consumers[data.actorId]) this.consumers[data.actorId] = {};
-		this.consumers[data.actorId][data.kind] = consumer;
+		this.producerConsumerMap[data.producerId] = data.consumerId;
+		this.consumers[data.consumerId] = consumer;
 
 		consumer.on("producerclose", () => {
 			consumer.close();
-			delete this.consumers[data.actorId][data.kind];
-			if (Object.keys(this.consumers[data.actorId]).length === 0) delete this.consumers[data.actorId];
+			delete this.consumers[data.consumerId];
+			delete this.producerConsumerMap[data.producerId];
 		});
 		consumer.on("transportclose", () => {
 			consumer.close();
-			delete this.consumers[data.actorId][data.kind];
-			if (Object.keys(this.consumers[data.actorId]).length === 0) delete this.consumers[data.actorId];
+			delete this.consumers[data.consumerId];
+			delete this.producerConsumerMap[data.producerId];
 		});
 
 		this.onmessage!({
 			command: "resumeConsumer",
-			data: { id: data.consumerId, actorId: data.actorId, kind: data.kind }
+			data: { id: data.consumerId }
 		});
 	}
 
-	async consumerResumed (data: {id: string; actorId: number; kind: string; }) {
-		if (this.consumers[data.actorId] && this.consumers[data.actorId][data.kind]) {
-			await this.consumers[data.actorId][data.kind].resume();
+	async consumerResumed (data: { id: string; }) {
+		if (this.consumers[data.id]) {
+			await this.consumers[data.id].resume();
 
-			this.onconsumerready && this.onconsumerready(data.actorId, data.kind);
+			this.onconsumerready && this.onconsumerready(data.id);
 		}
 	}
 
 	getAudioStream (id: string): MediaStream | undefined {
 		if (id === this.selfId.toString()) {
 			// return this.stream;
-			return null;
-		} else {
-			if (this.consumers[id] && this.consumers[id].audio) {
-				return new MediaStream([this.consumers[id].audio.track]);
-			}
-
 			return undefined;
+		} else {
+			const producerId = this.state[id].audio;
+
+			if (!producerId) return undefined;
+
+			const consumerId = this.producerConsumerMap[producerId];
+
+			if (!consumerId) return undefined;
+
+			const consumer = this.consumers[consumerId];
+
+			if (!consumer) return undefined;
+
+			return new MediaStream([consumer.track]);
 		}
 	}
 
@@ -242,11 +270,19 @@ export default class VoiceControls {
 		if (id === this.selfId.toString()) {
 			return this.stream;
 		} else {
-			if (this.consumers[id] && this.consumers[id].video) {
-				return new MediaStream([this.consumers[id].video.track]);
-			}
+			const producerId = this.state[id].video;
 
-			return undefined;
+			if (!producerId) return undefined;
+
+			const consumerId = this.producerConsumerMap[producerId];
+
+			if (!consumerId) return undefined;
+
+			const consumer = this.consumers[consumerId];
+
+			if (!consumer) return undefined;
+
+			return new MediaStream([consumer.track]);
 		}
 	}
 }

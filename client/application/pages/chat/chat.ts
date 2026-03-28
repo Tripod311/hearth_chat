@@ -30,6 +30,7 @@ interface TopicInfo {
 	can_write: boolean;
 	rtpCapabilities: any;
 	iceServers: any;
+	actors: ActorInfo[];
 }
 
 interface ActorInfo {
@@ -70,7 +71,7 @@ export default class ChatPage extends Component {
 	private socket!: WebSocket;
 	private enterListener!: (e: KeyEvent) => void;
 	private topicInfo!: TopicInfo;
-	private connectedActors!: ActorInfo[];
+	private connectedActors!: Record<number, ActorInfo>;
 	private filesToSend: File[] = [];
 
 	private waitingTopChunk: boolean = false;
@@ -270,7 +271,11 @@ export default class ChatPage extends Component {
 
 	async setup (data: TopicInfo) {
 		this.topicInfo = data.topicInfo;
-		this.connectedActors = data.actors;
+		this.connectedActors = {};
+
+		for (const actor of data.actors) {
+			this.connectedActors[actor.id] = actor;
+		}
 
 		this.refs.title.innerText = this.topicInfo.title;
 
@@ -280,17 +285,17 @@ export default class ChatPage extends Component {
 
 		await this.voiceControls.createDevice();
 		await this.voiceControls.load(data.rtpCapabilities);
-		this.voiceControls.iceServers = JSON.parse(data.iceServers);
+		if (data.iceServers) this.voiceControls.iceServers = JSON.parse(data.iceServers);
 		this.voiceControls.selfId = this.topicInfo.selfId;
 		this.voiceControls.mediaUpdate(data.mediaState);
 	}
 
 	onActorConnected (data: ActorInfo) {
-		this.connectedActors.push(data);
+		this.connectedActors[data.id] = data;
 	}
 
 	onActorDisconnected (data: ActorInfo) {
-		this.connectedActors = this.connectedActors.filter(a => a.id !== data.id);
+		delete this.connectedActors[data.id];
 	}
 
 	onAuth () {

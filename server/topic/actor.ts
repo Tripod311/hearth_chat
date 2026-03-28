@@ -1,16 +1,7 @@
-import mediasoup from "mediasoup"
 import EventEmitter from "events"
-
-export interface ConsumerData {
-	consumer: mediasoup.types.Consumer;
-	producerId: string;
-	actorId: number;
-	kind: string;
-}
+import TopicMedia from "./topicMedia.js"
 
 export default abstract class Actor extends EventEmitter {
-	public kind: string = "";
-
 	public authorized: boolean = false;
 	public is_admin: boolean;
 	public is_bot: boolean;
@@ -19,11 +10,11 @@ export default abstract class Actor extends EventEmitter {
 	public node_id: string | null;
 	public node_user_id: number;
 
-	protected transportConnected: boolean = false;
-	protected sendTransport?: mediasoup.types.Transport;
-	protected recvTransport?: mediasoup.types.Transport;
-	protected producers: { audio?: mediasoup.types.Producer; video?: mediasoup.types.Producer } = {};
-	protected consumers: Record<string, ConsumerData> = {};
+	public media!: TopicMedia;
+	protected sendTransport?: string;
+	protected recvTransport?: string;
+	protected producers: { audio?: string; video?: string } = {};
+	protected consumers: string[] = [];
 
 	constructor (is_admin: boolean, is_bot: boolean, display_name: string, id: number, node_id: string | null, node_user_id: number) {
 		super();
@@ -37,131 +28,133 @@ export default abstract class Actor extends EventEmitter {
 	}
 
 	kill () {
-		this.producers.audio?.close();
-		this.producers.video?.close();
-
-		this.sendTransport?.close();
-		this.recvTransport?.close();
+		if (this.sendTransport !== undefined) this.media.deleteTransport(this.sendTransport);
+		if (this.recvTransport !== undefined) this.media.deleteTransport(this.recvTransport);
 	}
 
-	setSendTransport (transport: mediasoup.types.Transport) {
-		this.sendTransport = transport;
-
-		if (this.sendTransport && this.recvTransport) {
-			this.transportConnected = true;
-
-			this.updateMediaState();
-		}
+	async createSendTransport () {
+		this.sendTransport = await this.media.createTransport("webrtc", {});
 	}
 
-	setRecvTransport (transport: mediasoup.types.Transport) {
-		this.recvTransport = transport;
-
-		if (this.sendTransport && this.recvTransport) {
-			this.transportConnected = true;
-
-			this.updateMediaState();
-		}
-	}
-
-	async deleteTransport () {
-		this.producers.audio?.close();
-		this.producers.video?.close();
-
+	async deleteSendTransport () {
 		if (this.sendTransport) {
-			await this.sendTransport.close();
+			await this.media.deleteTransport(this.sendTransport);
 			delete this.sendTransport;
-		}
 
+			this.emit("mediaChange");
+		}
+	}
+
+	async createRecvTransport () {
+		this.recvTransport = await this.media.createTransport("webrtc", {});
+	}
+
+	async deleteRecvTransport () {
 		if (this.recvTransport) {
-			await this.recvTransport.close();
+			await this.media.deleteTransport(this.recvTransport);
 			delete this.recvTransport;
+
+			this.emit("mediaChange");
 		}
-
-		this.transportConnected = false;
-
-		this.updateMediaState();
 	}
 
-	async createProducer (kind: any, rtpParameters: any): Promise<void> {
+	async createProducer (kind: string, rtpParameters: any): Promise<string> {
+		let result: string = "";
+
 		if (kind === "audio") {
-			this.producers.audio?.close();
+			if (this.producers.audio) {
+				await this.deleteProducer("audio");
+			}
 
-			this.producers.audio = await this.sendTransport!.produce({
-				kind,
-				rtpParameters
+			this.producers.audio = await this.media.createProducer(this.sendTransport!, "audio", rtpParameters, {
+				transportclose: this.deleteProducer.bind(this, "audio")
 			});
+
+			this.emit("mediaChange");
+
+			result = this.producers.audio as string;
 		} else if (kind === "video") {
-			this.producers.video?.close();
+			if (this.producers.video) {
+				await this.deleteProducer("video");
+			}
 
-			this.producers.video = await this.sendTransport!.produce({
-				kind,
-				rtpParameters
+			this.producers.video = await this.media.createProducer(this.sendTransport!, "video", rtpParameters, {
+				transportclose: this.deleteProducer.bind(this, "video")
 			});
+
+			this.emit("mediaChange");
+
+			result = this.producers.video as string;
 		}
 
-		this.updateMediaState();
+		return result;
 	}
 
-	createConsumer (actorId: number, kind: string) {
-		this.emit("createConsumer", {
-			actorId,
-			kind
+	async deleteProducer (kind: string) {
+		if (kind === "audio" && this.producers.audio) {
+			await this.media.deleteProducer(this.producers.audio);
+			delete this.producers.audio;
+
+			this.emit("mediaChange");
+		} else if (kind === "video" && this.producers.video) {
+			await this.media.deleteProducer(this.producers.video);
+			delete this.producers.video;
+
+			this.emit("mediaChange");
+		}
+	}
+
+	async pauseProducer (kind: string) {
+		if (kind === "audio" && this.producers.audio) {
+			await this.media.pauseProducer(this.producers.audio);
+		} else if (kind === "video" && this.producers.video) {
+			await this.media.pauseProducer(this.producers.video);
+		}
+	}
+
+	async resumeProducer (kind: string) {
+		if (kind === "audio" && this.producers.audio) {
+			await this.media.resumeProducer(this.producers.audio);
+		} else if (kind === "video" && this.producers.video) {
+			await this.media.resumeProducer(this.producers.video);
+		}
+	}
+
+	async createConsumer (producerId: string, rtpCapabilities: any): Promise<string> {
+		const id = await this.media.createConsumer(this.recvTransport!, producerId, rtpCapabilities, {
+			transportclose: this.deleteConsumer.bind(this),
+			producerclose: this.deleteConsumer.bind(this)
 		});
+
+		this.consumers.push(id);
+
+		return id;
 	}
 
-	setConsumer (id: string, consumer: ConsumerData) {
-		this.consumers[id] = consumer;
+	async deleteConsumer (id: string) {
+		await this.media.deleteConsumer(id);
 
-		consumer.consumer.on("producerclose", this.deleteConsumer.bind(this, id));
-		consumer.consumer.on("transportclose", this.deleteConsumer.bind(this, id));
+		this.consumers = this.consumers.filter(c => c !== id);
 	}
 
-	deleteConsumer (id: string) {
-		this.consumers[id]?.consumer.close();
-
-		delete this.consumers[id];
+	async pauseConsumer (id: string) {
+		await this.media.pauseConsumer(id);
 	}
 
 	async resumeConsumer (id: string) {
-		await this.consumers[id]?.consumer.resume();
+		await this.media.resumeConsumer(id);
 	}
 
-	deleteProducer (kind: any) {
-		if (kind === "audio") {
-			this.producers.audio?.close();
-			delete this.producers.audio;
-		} else if (kind === "video") {
-			this.producers.video?.close();
-			delete this.producers.video;
+	get mediaState (): { display_name: string; audio?: string; video?: string; } | undefined {
+		if (this.sendTransport && this.recvTransport) {
+			return {
+				display_name: this.display_name,
+				audio: this.producers.audio,
+				video: this.producers.video
+			}
+		} else {
+			return undefined;
 		}
-
-		this.updateMediaState();
-	}
-
-	updateMediaState () {
-		this.emit("mediaChange", {
-			connected: this.transportConnected,
-			audio: !!this.producers.audio,
-			video: !!this.producers.video
-		});
-	}
-
-	get transports (): { send: mediasoup.types.Transport; recv: mediasoup.types.Transport; } | null {
-		if (!this.sendTransport || !this.recvTransport) return null;
-
-		return {
-			send: this.sendTransport,
-			recv: this.recvTransport
-		}
-	}
-
-	get audioProducer (): mediasoup.types.Producer | null {
-		return this.producers.audio || null;
-	}
-
-	get videoProducer (): mediasoup.types.Producer | null {
-		return this.producers.video || null;
 	}
 
 	abstract proxy (data: string): void;
