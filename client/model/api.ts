@@ -30,6 +30,7 @@ import FetchHandshakesRequest from "./related/fetchHandshakes.js"
 import AcceptHandshakeRequest from "./related/acceptHandshake.js"
 import RejectHandshakeRequest from "./related/rejectHandshake.js"
 import SendHandshakeRequest from "./related/sendHandshake.js"
+import ForgetRelatedRequest from "./related/forgetRelated.js"
 
 export default function addAPI (model: Pump) {
 	const root = new Pipe();
@@ -73,4 +74,5 @@ export default function addAPI (model: Pump) {
 	relatedRoot.addPipe("acceptHandshake", AcceptHandshakeRequest);
 	relatedRoot.addPipe("rejectHandshake", RejectHandshakeRequest);
 	relatedRoot.addPipe("sendHandshake", SendHandshakeRequest);
+	relatedRoot.addPipe("forgetRelated", ForgetRelatedRequest);
 }

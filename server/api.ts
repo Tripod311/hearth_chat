@@ -38,6 +38,7 @@ import fetchHandshakes from "./api/related/fetchHandshakes.js"
 import acceptHandshake from "./api/related/acceptHandshake.js"
 import rejectHandshake from "./api/related/rejectHandshake.js"
 import sendHandshake from "./api/related/sendHandshake.js"
+import forgetRelated from "./api/related/forgetRelated.js"
 
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
@@ -285,6 +286,12 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			sendHandshake.bind(this)
+		]));
+
+		this.instance.post("/api/forgetRelated", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			forgetRelated.bind(this)
 		]));
 	}
 

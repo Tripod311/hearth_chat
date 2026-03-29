@@ -31,7 +31,13 @@ export default class MediasoupController {
 	private static routers: Record<number, mediasoup.types.Router> = {};
 
 	static async setup () {
-		MediasoupController.worker = await mediasoup.createWorker();
+		const portBase = process.env.PORT_BASE ? parseInt(process.env.PORT_BASE) : 40000;
+		const portRange = process.env.PORT_RANGE ? parseInt(process.env.PORT_RANGE) : 9999;
+
+		MediasoupController.worker = await mediasoup.createWorker({
+			rtcMinPort: portBase,
+			rtcMaxPort: portBase + portRange
+		});
 	}
 
 	static async shutdown () {
