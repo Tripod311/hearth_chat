@@ -6,9 +6,9 @@ interface Output {
 	data: Record<string, any[]>;
 }
 
-const AllTopicsRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const AllTopicsRequest = new AsyncFunctionPipe<string, Output>(async (nodeId: string) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/allTopics");
+		const response = await fetch(`${window.location.origin}/api/${nodeId}/allTopics`);
 
 		const data = await response.json();
 

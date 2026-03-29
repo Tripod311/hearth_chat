@@ -31,7 +31,8 @@ export default class TopicsPage extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const response = await Model.getPipe("api.topic.allTopics").run();
+		const nodeId = window.location.pathname.split('/')[1];
+		const response = await Model.getPipe("api.topic.allTopics").run(nodeId);
 
 		spinner.emit("close");
 

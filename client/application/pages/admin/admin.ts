@@ -4,6 +4,7 @@ import View from "./admin.html?raw"
 import NodeTab from "./nodeTab/component.js"
 import UsersTab from "./usersTab/component.js"
 import TopicsTab from "./topicsTab/component.js"
+import RelatedTab from "./relatedTab/component.js"
 
 export default class AdminPage extends Component {
 	protected static componentName = "AdminPage";
@@ -47,6 +48,7 @@ export default class AdminPage extends Component {
 				this.slots.tab.push(new TopicsTab({}));
 				break;
 			case "related":
+				this.slots.tab.push(new RelatedTab({}));
 				break;
 		}
 	}

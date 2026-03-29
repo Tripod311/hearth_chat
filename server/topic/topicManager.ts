@@ -29,16 +29,22 @@ export default class TopicManager extends Node {
 		try {
 			if (!this.topics[topic_id]) {
 				if (!this.pendingIds[topic_id]) {
-					const pr = this.fetchTopic(topic_id);
-					this.pendingIds[topic_id] = pr;	
+					this.pendingIds[topic_id] = this.fetchTopic(topic_id);
 				}
 
 				await this.pendingIds[topic_id];
+
+				if (!this.pendingIds[topic_id] && !this.topics[topic_id]) {
+					throw new Error(`Topic ${topic_id} was deleted`);
+				}
+				
+				delete this.pendingIds[topic_id];
 			}
 
 			const actor = new WSActor(is_admin, is_bot, display_name, id, null, node_user_id, socket);
 			this.topics[topic_id]!.connectActor(actor);
 		} catch (err: any) {
+			delete this.pendingIds[topic_id];
 			socket.terminate();
 		}
 	}
@@ -56,13 +62,6 @@ export default class TopicManager extends Node {
 				command: "getTopicById",
 				data: { id: topic_id }
 			}, (response: Event) => {
-				if (!this.pendingIds[topic_id]) {
-					reject(`Topic ${topic_id} was deleted`);
-					return;
-				}
-
-				delete this.pendingIds[topic_id];
-
 				if (response.data.error) {
 					Log.error(`Can't fetch topic ${topic_id}: ${response.data.details}`, 0);
 					reject(`Can't fetch topic ${topic_id}: ${response.data.details}`);

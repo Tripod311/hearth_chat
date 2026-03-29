@@ -3,7 +3,7 @@ import { Node, Event } from "@tripod311/dispatch"
 
 export default function allTopics (this: Node, ctx: Context): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const nodeId = ctx.body.nodeId;
+		const nodeId = ctx.params.nodeId;
 
 		if (nodeId === "self") {
 			const dbAddress = this.address!.parent.data;

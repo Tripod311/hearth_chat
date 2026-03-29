@@ -32,7 +32,7 @@ export default class TopicsTab extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const response = await Model.getPipe("api.topic.allTopics").run({});
+		const response = await Model.getPipe("api.topic.allTopics").run("self");
 
 		spinner.emit("close");
 

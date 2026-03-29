@@ -61,7 +61,13 @@ export default class NodeTab extends Component {
 
 			if (response.error) throw new Error(response.details);
 
-			throw new Error("Node settings updated");
+			spinner.emit("close");
+
+			const notification = Model.getPipe("modals.createNotification").run({
+				message: "Node settings updated",
+				buttonValue: "Ok"
+			});
+			Model.getPipe("modals.showDialog").run(notification);
 		} catch (err: any) {
 			spinner.emit("close");
 

@@ -23,7 +23,7 @@ export default class RelatedTab extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const response = await Model.getPipe("api.related.fetchRelated").run({});
+		const response = await Model.getPipe("api.related.fetchRelated").run("self");
 
 		spinner.emit("close");
 

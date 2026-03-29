@@ -6,9 +6,9 @@ interface Output {
 	data: any;
 }
 
-const FetchRelatedRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const FetchRelatedRequest = new AsyncFunctionPipe<string, Output>(async (nodeId: string) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/handshakes", {
+		const response = await fetch(`${window.location.origin}/api/${nodeId}/related`, {
 			method: "GET"
 		});
 

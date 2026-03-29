@@ -171,7 +171,7 @@ export default class DB extends Node {
 
 			const nodeId = crypto.randomUUID();
 
-			this.db.prepare(`INSERT INTO settings (uuid, http_port, gate_port, name, description, title_page) VALUES (
+			this.db.prepare(`INSERT INTO settings (uuid, http_port, gate_port, title, description, title_page) VALUES (
 					?,
 					8080,
 					14567,

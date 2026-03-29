@@ -22,6 +22,8 @@ export default class WSActor extends Actor {
 	kill () {
 		clearTimeout(this.timeout);
 
+		this.socket.terminate();
+
 		super.kill();
 	}
 

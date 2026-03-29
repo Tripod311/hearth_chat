@@ -197,7 +197,7 @@ export default class API extends Node {
 			myTopics.bind(this)
 		]));
 
-		this.instance.get("/api/allTopics", this.baseChain.concat([
+		this.instance.get("/api/:nodeId/allTopics", this.baseChain.concat([
 			verify.bind(this),
 			allTopics.bind(this)
 		]));
@@ -260,7 +260,7 @@ export default class API extends Node {
 			nodeHandshake.bind(this)
 		]));
 
-		this.instance.get("/api/related", this.baseChain.concat([
+		this.instance.get("/api/:nodeId/related", this.baseChain.concat([
 			verify.bind(this),
 			fetchRelated.bind(this)
 		]));

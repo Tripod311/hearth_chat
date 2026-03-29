@@ -3,18 +3,36 @@ import { Node, Event } from "@tripod311/dispatch"
 
 export default function fetchRelated (this: Node, ctx: Context): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const dbAddress = this.address!.parent.data;
-		dbAddress.push("db");
+		const nodeId = ctx.params.nodeId;
 
-		this.chain(dbAddress, {
-			command: "fetchDirectNodes",
-			data: {}
-		}, (response: Event) => {
-			if (response.data.error) {
-				ctx.status(500).json({ error: true, details: response.data.details });
-			} else {
-				ctx.status(200).json({ error: false, data: response.data.data });
-			}
-		});
+		if (nodeId === "self") {
+			const dbAddress = this.address!.parent.data;
+			dbAddress.push("db");
+
+			this.chain(dbAddress, {
+				command: "fetchDirectNodes",
+				data: {}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		} else {
+			const gateAddress = this.address!.parent.data;
+			gateAddress.push("gate");
+
+			this.chain(gateAddress, {
+				command: "fetchDirectNodes",
+				data: { uuid: nodeId }
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+			});
+		}
 	});
 }
