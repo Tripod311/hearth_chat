@@ -30,7 +30,7 @@ export default class NodeTab extends Component {
 			});
 			Model.getPipe("modals.showDialog").run(notification);
 		} else {
-			this.refs.name.value = response.data.name;
+			this.refs.title.value = response.data.title;
 			this.refs.description.value = response.data.description;
 			this.refs.title_page.value = response.data.title_page;
 			this.refs.http_port.value = response.data.http_port;
@@ -46,7 +46,7 @@ export default class NodeTab extends Component {
 
 		try {
 			const val = {
-				name: this.refs.name.value,
+				title: this.refs.title.value,
 				description: this.refs.description.value,
 				title_page: JSON.stringify(JSON.parse(this.refs.title_page.value)),
 				http_port: parseInt(this.refs.http_port.value),

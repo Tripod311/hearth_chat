@@ -32,6 +32,13 @@ import fetchTitlePage from "./api/node/fetchTitlePage.js"
 import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
 
+import nodeHandshake from "./api/related/nodeHandshake.js"
+import fetchRelated from "./api/related/fetchRelated.js"
+import fetchHandshakes from "./api/related/fetchHandshakes.js"
+import acceptHandshake from "./api/related/acceptHandshake.js"
+import rejectHandshake from "./api/related/rejectHandshake.js"
+import sendHandshake from "./api/related/sendHandshake.js"
+
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
 	maxRequestSize: 1024 * 1024 * 150,
@@ -243,6 +250,41 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			this.requestWS.bind(this)
+		]));
+
+		// related
+
+		this.instance.post("/api/handshake", this.baseChain.concat([
+			JsonBody,
+			nodeHandshake.bind(this)
+		]));
+
+		this.instance.get("/api/related", this.baseChain.concat([
+			verify.bind(this),
+			fetchRelated.bind(this)
+		]));
+
+		this.instance.get("/api/handshakes", this.baseChain.concat([
+			verify.bind(this),
+			fetchHandshakes.bind(this)
+		]));
+
+		this.instance.post("/api/acceptHandshake", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			acceptHandshake.bind(this)
+		]));
+
+		this.instance.post("/api/rejectHandshake", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			rejectHandshake.bind(this)
+		]));
+
+		this.instance.post("/api/sendHandshake", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			sendHandshake.bind(this)
 		]));
 	}
 

@@ -194,7 +194,6 @@ export default class ChatPage extends Component {
 	}
 
 	handleMessage (e: MessageEvent) {
-		console.log(e.data);
 		const data = JSON.parse(e.data) as { command: string; data: any; };
 
 		switch (data.command) {
@@ -244,6 +243,9 @@ export default class ChatPage extends Component {
 				break;
 			case "producerCreated":
 				this.voiceControls.producerCreated(data.data);
+				break;
+			case "producerDeleted":
+				this.voiceControls.producerDeleted(data.data);
 				break;
 			case "consumerCreated":
 				this.voiceControls.consumerCreated(data.data);

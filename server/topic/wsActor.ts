@@ -29,7 +29,6 @@ export default class WSActor extends Actor {
 		const raw = data.toString();
 
 		try {
-			console.log(raw);
 			const message = JSON.parse(raw) as { command: string; data: any; };
 
 			switch (message.command) {
@@ -115,6 +114,8 @@ export default class WSActor extends Actor {
 				}
 			}
 		}));
+
+		this.emit("mediaChange");
 	}
 
 	async deleteTransports () {

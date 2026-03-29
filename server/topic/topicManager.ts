@@ -13,6 +13,8 @@ export default class TopicManager extends Node {
 
 		this.setListener("wsConnection", this.handleWSConnection.bind(this));
 		this.setListener("proxyConnection", this.handleProxyConnection.bind(this));
+
+		this.setListener("topicDeleted", this.onTopicDeleted.bind(this));
 	}
 
 	async handleWSConnection (event: Event) {
@@ -54,6 +56,11 @@ export default class TopicManager extends Node {
 				command: "getTopicById",
 				data: { id: topic_id }
 			}, (response: Event) => {
+				if (!this.pendingIds[topic_id]) {
+					reject(`Topic ${topic_id} was deleted`);
+					return;
+				}
+
 				delete this.pendingIds[topic_id];
 
 				if (response.data.error) {
@@ -76,5 +83,15 @@ export default class TopicManager extends Node {
 				}
 			})
 		});
+	}
+
+	onTopicDeleted (event: Event) {
+		const id = event.data.data.id.toString();
+
+		delete this.pendingIds[id];
+
+		if (this.topics[id]) {
+			this.delChild(id);
+		}
 	}
 }

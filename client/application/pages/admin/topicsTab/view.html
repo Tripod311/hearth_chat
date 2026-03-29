@@ -1,5 +1,6 @@
-<div class="w-full h-full p-4">
+<div class="w-full h-full p-4 overflow-auto">
 	<div class="w-full flex flex-row gap-2 p-2 mb-6">
+		<div data-ref="edit" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Edit selected</div>
 		<div data-ref="delete" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Delete selected</div>
 	</div>
 	<div class="w-full flex flex-col gap-2">
@@ -12,6 +13,8 @@
 				<tr>
 					<th>Title</th>
 					<th>Creator</th>
+					<th>Guests allowed</th>
+					<th>Password protected</th>
 				</tr>
 			</thead>
 			<tbody data-ref="tbody" class="[&>tr>td]:border [&>tr>td]:border-default [&>tr>td]:p-2 [&>tr>td]:truncate">

@@ -17,6 +17,17 @@ export default function setNodeSettings (this: Node, ctx: Context): Promise<void
 					ctx.status(500).json({ error: true, details: response.data.details });
 				} else {
 					ctx.status(200).json({ error: false });
+
+					const gateAddress = this.address!.parent.data;
+					gateAddress.push("gate");
+
+					this.send(gateAddress, {
+						command: "nodeInfoChanged",
+						data: {
+							title: ctx.body.title,
+							description: ctx.body.description
+						}
+					});
 				}
 			});
 		}

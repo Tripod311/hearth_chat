@@ -11,7 +11,7 @@ export default function deleteTopic (db: Database.Database, event: Event) {
 		if (!userRow.can_manage) throw new Error("Access denied");
 			
 		// delete all messages and attachments
-		
+		db.prepare(`DELETE FROM messages WHERE topic_id=?`).run([ event.data.data.id ]);
 		db.prepare(`DELETE FROM topics WHERE id=?`).run([ event.data.data.id ]);
 
 		event.response({

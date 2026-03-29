@@ -1,0 +1,14 @@
+<div class="w-full h-full overflow-auto">
+	<div class="w-full flex flex-row p-2 mb-6 items-center">
+		<input data-ref="nodeAddress" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl grow" />
+		<div data-ref="handshake" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Send handshake</div>
+	</div>
+	<div data-ref="handshakes" class="w-full flex flex-col">
+		<div class="text-xl">Waiting for handshake:</div>
+		<!--slot:handshakes-->
+	</div>
+	<div class="w-full flex flex-col">
+		<div class="text-xl">Related nodes:</div>
+		<!--slot:nodes-->
+	</div>
+</div>

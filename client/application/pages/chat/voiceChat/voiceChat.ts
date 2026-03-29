@@ -4,24 +4,34 @@ import View from "./voiceChat.html?raw"
 import Model from "../../../../model/main.js"
 
 import CloseIcon from "../../../../icons/delete.svg"
+import MicIcon from "../../../../icons/microphone.svg"
+import CamIcon from "../../../../icons/camera.svg"
+import NoMicIcon from "../../../../icons/microphone-cross.svg"
+import NoCamIcon from "../../../../icons/camera-cross.svg"
+
 import Block from "./block.html?raw"
+import ConnectionBlock from "./connection.html?raw"
 
 TemplateCache.registerDrop("voiceChatBlock", Block);
+TemplateCache.registerDrop("voiceChatConnection", ConnectionBlock);
 
 export default class VoiceChat extends Component {
 	protected static componentName = "VoiceChat";
 	protected static template = View;
 
-	private connectionState: boolean = false;
 	private opened: boolean = false;
-	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; }> = {};
+	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; connectionRow: HTMLElement; }> = {};
 
 	mounted () {
 		super.mounted();
 
 		this.refs.closeControls.src = CloseIcon;
 		this.refs.closeControls.onclick = this.emit.bind(this, "toggle");
-		this.refs.connect.onclick = this.onConnect.bind(this);
+		this.refs.connect.onclick = this.toggleConnection.bind(this);
+		this.refs.voice.onclick = this.toggleVoice.bind(this);
+		this.refs.voice.style.display = "none";
+		this.refs.video.onclick = this.toggleVideo.bind(this);
+		this.refs.video.style.display = "none";
 
 		this.state.getProp("controls").onupdate = this.onUpdate.bind(this);
 		this.state.getProp("controls").onconsumerready = this.setConsumer.bind(this);
@@ -32,7 +42,7 @@ export default class VoiceChat extends Component {
 		this.refs.container.style.height = "100%";
 		this.opened = true;
 
-		if (this.connectionState) this.fill();
+		if (this.state.getProp("controls").connected) this.fill();
 	}
 
 	close () {
@@ -46,43 +56,57 @@ export default class VoiceChat extends Component {
 		}
 	}
 
-	async onConnect () {
-		try {
-			const stream = await navigator.mediaDevices.getUserMedia({
-				audio: true,
-				video: true
-			});
+	toggleConnection () {
+		if (this.state.getProp("controls").connected) {
+			this.state.getProp("controls").deleteTransport();
+			this.refs.connect.innerText = "Connect";
+		} else {
+			this.state.getProp("controls").createTransport();
+			this.refs.connect.innerText = "Connecting...";
+		}
+	}
+
+	async toggleVoice () {
+		const controls = this.state.getProp("controls");
+
+		if (!controls.audioTrack) {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
 			if (stream) {
-				this.state.getProp("controls").createTransport(stream);
-				this.refs.connect.style.display = "none";
-				this.refs.connectMessage.innerText = "Connecting...";
+				this.state.getProp("controls").audioTrack = stream.getAudioTracks()[0];
 			}
-		} catch (err: any) {
-			const notification = Model.getPipe("modals.createNotification").run({
-				message: `Error: ${err.message || err.toString()}`,
-				buttonValue: "Ok"
-			});
-			Model.getPipe("modals.showDialog").run(notification);
+		} else {
+			controls.audioTrack = undefined;
+		}
+	}
+
+	async toggleVideo () {
+		const controls = this.state.getProp("controls");
+
+		if (!controls.videoTrack) {
+			const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+			if (stream) {
+				this.state.getProp("controls").videoTrack = stream.getVideoTracks()[0];
+			}
+		} else {
+			controls.videoTrack = undefined;
 		}
 	}
 
 	onUpdate () {
 		const controls = this.state.getProp("controls");
 
-		if (controls.connected !== this.connectionState) {
-			this.connectionState = controls.connected;
-
-			this.refs.connect.style.display = "block";
-			this.refs.connectMessage.innerText = "Connect with voice/video";
-
-			if (controls.connected) {
-				this.refs.inactive.style.display = "none";
-				this.refs.active.style.display = "block";
-			} else {
-				this.refs.inactive.style.display = "flex";
-				this.refs.active.style.display = "none";
-			}
+		if (controls.connected) {
+			this.refs.connect.innerText = "Disconnect";
+			this.refs.voice.style.display = "block";
+			this.refs.video.style.display = "block";
+			this.refs.voice.src = controls.audioTrack ? NoMicIcon : MicIcon;
+			this.refs.video.src = controls.videoTrack ? NoCamIcon : CamIcon;
+		} else {
+			this.refs.connect.innerText = "Connect"
+			this.refs.voice.style.display = "none";
+			this.refs.video.style.display = "none";
 		}
 
 		if (this.opened) this.fill();
@@ -147,6 +171,7 @@ export default class VoiceChat extends Component {
 		for (const id of toDelete) {
 			this.blocks[id].audio?.remove();
 			this.blocks[id].display.remove();
+			this.blocks[id].connectionRow.remove();
 			delete this.blocks[id];
 		}
 
@@ -154,11 +179,12 @@ export default class VoiceChat extends Component {
 		for (const id of real) {
 			if (!this.blocks[id]) {
 				this.blocks[id] = {
-					display: TemplateCache.createDrop("voiceChatBlock", { display_name: state[id].display_name }).node
+					display: TemplateCache.createDrop("voiceChatBlock", { display_name: state[id].display_name }).node,
+					connectionRow: TemplateCache.createDrop("voiceChatConnection", { display_name: state[id].display_name }).node
 				};
 			}
 
-			if (state[id].audio) {
+			if (state[id].audio && (!this.blocks[id].audio || this.blocks[id].audio.srcObject !== controls.getAudioStream(id))) {
 				this.blocks[id].audio?.remove();
 
 				this.blocks[id].audio = document.createElement("audio");
@@ -174,9 +200,12 @@ export default class VoiceChat extends Component {
 				delete this.blocks[id].audio;
 			}
 
-			if (state[id].video) {
+			if (state[id].video && (!this.blocks[id].video || this.blocks[id].video.srcObject !== controls.getVideoStream(id))) {
+				this.blocks[id].video?.remove();
+
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
+				this.blocks[id].video.onclick = this.requestFullScreen.bind(this, this.blocks[id].video);
 				this.blocks[id].video.className = "w-full h-full object-cover";
 				this.blocks[id].display.appendChild(this.blocks[id].video);
 
@@ -190,6 +219,7 @@ export default class VoiceChat extends Component {
 			}
 
 			this.refs.blocks.appendChild(this.blocks[id].display);
+			this.refs.connections.appendChild(this.blocks[id].connectionRow);
 		}
 	}
 
@@ -198,6 +228,14 @@ export default class VoiceChat extends Component {
 			this.fill();
 		} else {
 			this.fillAudio();
+		}
+	}
+
+	requestFullScreen (video: HTMLElement) {
+		if (video.requestFullscreen) {
+			video.requestFullscreen();
+		} else if (video.webkitEnterFullscreen) {
+			video.webkitEnterFullscreen();
 		}
 	}
 }

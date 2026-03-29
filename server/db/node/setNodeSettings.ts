@@ -3,8 +3,8 @@ import Database from "better-sqlite3"
 
 export default function setNodeSettings (db: Database.Database, event: Event) {
 	try {
-		const row = db.prepare(`UPDATE settings SET name=?, description=?, title_page=?, http_port=?, gate_port=?, ice_candidates=?, announced_ip=? WHERE id=1`).run([
-			event.data.data.name,
+		const row = db.prepare(`UPDATE settings SET title=?, description=?, title_page=?, http_port=?, gate_port=?, ice_candidates=?, announced_ip=? WHERE id=1`).run([
+			event.data.data.title,
 			event.data.data.description,
 			event.data.data.title_page,
 			event.data.data.http_port,

@@ -27,6 +27,17 @@ import fetchTitle from "./db/node/fetchTitle.js"
 import getNodeSettings from "./db/node/getNodeSettings.js"
 import setNodeSettings from "./db/node/setNodeSettings.js"
 
+import fetchDirectNodes from "./db/related/fetchDirectNodes.js"
+import nodeOnline from "./db/related/nodeOnline.js"
+import nodeOffline from "./db/related/nodeOffline.js"
+import checkNodeRegistered from "./db/related/checkNodeRegistered.js"
+import nodeHandshake from "./db/related/nodeHandshake.js"
+import rememberNode from "./db/related/rememberNode.js"
+import relatedNodeInfoUpdate from "./db/related/relatedNodeInfoUpdate.js"
+import fetchHandshakes from "./db/related/fetchHandshakes.js"
+import acceptHandshake from "./db/related/acceptHandshake.js"
+import rejectHandshake from "./db/related/rejectHandshake.js"
+
 import findActor from "./db/actor/findActor.js"
 
 interface UserFilter {
@@ -40,6 +51,8 @@ export default class DB extends Node {
 	private static readonly SCHEMA_VERSION = 0;
 	private db: Database.Database;
 	private node_id: string;
+	private node_title: string;
+	private node_description: string;
 	private gate_port: number;
 	private http_port: number;
 	private announced_ip?: string | null;
@@ -100,7 +113,7 @@ export default class DB extends Node {
 				id INTEGER PRIMARY KEY CHECK (id=1),
 
 				uuid TEXT,
-				name VARCHAR(300),
+				title VARCHAR(300),
 				http_port INTEGER,
 				gate_port INTEGER,
 				description TEXT,
@@ -112,7 +125,8 @@ export default class DB extends Node {
 			this.db.exec(`CREATE TABLE IF NOT EXISTS pending_related (
 				id INTEGER PRIMARY KEY,
 
-				url TEXT,
+				ip TEXT,
+				port INTEGER,
 				uuid TEXT,
 				message TEXT
 			);`);
@@ -121,12 +135,12 @@ export default class DB extends Node {
 				id INTEGER PRIMARY KEY,
 
 				uuid TEXT NOT NULL UNIQUE,
-				url TEXT NOT NULL UNIQUE,
+				ip TEXT,
+				port INTEGER,
 				title VARCHAR(300),
 				description TEXT,
 
 				direct INTEGER DEFAULT 0,
-				is_visible INTEGER NOT NULL DEFAULT 1,
 				is_alive INTEGER NOT NULL DEFAULT 0
 			);`);
 
@@ -144,10 +158,10 @@ export default class DB extends Node {
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS attachments (
 				id INTEGER PRIMARY KEY,
-				message_id INTEGER NOT NULL,
+				message_id INTEGER,
 				file_path TEXT NOT NULL UNIQUE,
 				
-				FOREIGN KEY (message_id) REFERENCES messages(id)
+				FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE SET NULL
 			);`);
 
 			this.db.exec(`CREATE INDEX IF NOT EXISTS idx_message_topic_id ON messages(topic_id, id)`);
@@ -167,12 +181,16 @@ export default class DB extends Node {
 			this.createRootUser();
 
 			this.node_id = nodeId;
+			this.node_title = "HearthChat Node";
+			this.node_description = "Fresh node";
 			this.gate_port = 14567;
 			this.http_port = 8080;
 		} else {
-			const row = this.db.prepare("SELECT uuid, http_port, gate_port, announced_ip, ice_candidates FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; announced_ip: string | null; ice_candidates: string | null };
+			const row = this.db.prepare("SELECT uuid, title, description, http_port, gate_port, announced_ip, ice_candidates FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; announced_ip: string | null; ice_candidates: string | null; title: string; description: string; };
 
 			this.node_id = row.uuid;
+			this.node_title = row.title;
+			this.node_description = row.description;
 			this.gate_port = row.gate_port;
 			this.http_port = row.http_port;
 			this.announced_ip = row.announced_ip;
@@ -216,12 +234,24 @@ export default class DB extends Node {
 		this.setListener("getNodeSettings", getNodeSettings.bind(this, this.db));
 		this.setListener("setNodeSettings", setNodeSettings.bind(this, this.db));
 
+		this.setListener("fetchDirectNodes", fetchDirectNodes.bind(this, this.db));
+		this.setListener("nodeOnline", nodeOnline.bind(this, this.db));
+		this.setListener("nodeOffline", nodeOffline.bind(this, this.db));
+		this.setListener("checkNodeRegistered", checkNodeRegistered.bind(this, this.db));
+		this.setListener("nodeHandshake", nodeHandshake.bind(this, this.db));
+		this.setListener("rememberNode", rememberNode.bind(this, this.db));
+		this.setListener("relatedNodeInfoUpdate", relatedNodeInfoUpdate.bind(this, this.db));
+		this.setListener("fetchHandshakes", fetchHandshakes.bind(this, this.db));
+		this.setListener("acceptHandshake", acceptHandshake.bind(this, this.db));
+		this.setListener("rejectHandshake", rejectHandshake.bind(this, this.db));
+
 		this.setListener("findActor", findActor.bind(this, this.db));
 
 		this.setListener("pushMessage", pushMessage.bind(this, this.db));
 		this.setListener("fetchMessages", fetchMessages.bind(this, this.db));
 
 		this.setListener("checkAssigned", this.checkAssigned.bind(this));
+		this.setListener("clearOrphaned", this.clearOrphaned.bind(this));
 	}
 
 	detach () {
@@ -232,6 +262,14 @@ export default class DB extends Node {
 
 	get uuid () {
 		return this.node_id;
+	}
+
+	get title () {
+		return this.node_title;
+	}
+
+	get description () {
+		return this.node_description;
 	}
 
 	get gatePort () {
@@ -250,18 +288,39 @@ export default class DB extends Node {
 	}
 
 	checkAssigned (event: Event) {
-		const files = new Set<string>(event.data.data.files);
-		const placeholders = event.data.data.files.map(() => '?').join(',');
+		try {
+			const files = new Set<string>(event.data.data.files);
+			const placeholders = event.data.data.files.map(() => '?').join(',');
 
-		const rows = this.db.prepare(`SELECT file_path FROM attachments WHERE file_path IN (${placeholders})`).all(event.data.data.files) as { file_path: string; }[];
+			const rows = this.db.prepare(`SELECT file_path FROM attachments WHERE file_path IN (${placeholders})`).all(event.data.data.files) as { file_path: string; }[];
 
-		for (const row of rows) {
-			files.delete(row.file_path);
+			for (const row of rows) {
+				files.delete(row.file_path);
+			}
+
+			event.response({
+				command: "checkAssignedResponse",
+				data: Array.from(files)
+			});
+		} catch (err: any) {
+			event.response({
+				command: "checkAssignedResponse",
+				error: true,
+				details: err.toString()
+			})
 		}
+	}
 
-		event.response({
-			command: "checkAssignedResponse",
-			data: Array.from(files)
-		});
+	async clearOrphaned (event: Event) {
+		try {
+			const rows = this.db.prepare(`SELECT file_path FROM attachments WHERE message_id IS NULL`).all([]) as { file_path: string }[];
+			this.db.prepare(`DELETE FROM attachments WHERE message_id IS NULL`).run();
+
+			for (const row of rows) {
+				await FS.promises.rm("./data/files/" + row.file_path);
+			}
+		} catch (err: any) {
+			Log.error("Clear orphaned attachments error: " + err.toString(), 0);
+		}
 	}
 }

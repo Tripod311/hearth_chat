@@ -2,6 +2,7 @@ import { Component } from "@tripod311/splash"
 import View from "./view.html?raw"
 
 import Model from "../../../../model/main.js"
+import TopicDialog from "../../account/dialogs/topicDialog.js"
 
 interface TopicData {
 	id: number;
@@ -20,6 +21,7 @@ export default class TopicsTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.refs.edit.onclick = this.editSelected.bind(this);
 		this.refs.delete.onclick = this.deleteSelected.bind(this);
 		this.refs.search.onclick = this.filterChange.bind(this);
 
@@ -51,13 +53,16 @@ export default class TopicsTab extends Component {
 				const tr = document.createElement("tr");
 				tr.style.cursor = "pointer";
 				let td = document.createElement("td");
-				td.innerText = row.id;
-				tr.appendChild(td);
-				td = document.createElement("td");
 				td.innerText = row.title;
 				tr.appendChild(td);
 				td = document.createElement("td");
-				td.innerText = row.creator;
+				td.innerText = row.creator_name;
+				tr.appendChild(td);
+				td = document.createElement("td");
+				td.innerText = row.guest_access;
+				tr.appendChild(td);
+				td = document.createElement("td");
+				td.innerText = row.password_protected;
 				tr.appendChild(td);
 				this.refs.tbody.appendChild(tr);
 
@@ -102,12 +107,47 @@ export default class TopicsTab extends Component {
 		Model.getPipe("modals.showDialog").run(prompt);
 	}
 
+	editSelected () {
+		const data = this.data[this.selectedRow];
+
+		const dlg = new TopicDialog({
+			data: data,
+			callback: async (data: Record<string, any>) => {
+				const spinner = Model.getPipe("modals.createSpinner").run();
+				Model.getPipe("modals.showDialog").run(spinner);
+
+				const response = await Model.getPipe("api.topic.update").run(data);
+
+				spinner.emit("close");
+
+				if (response.error) {
+					const notification = Model.getPipe("modals.createNotification").run({
+						message: response.details,
+						buttonValue: "Ok"
+					});
+					Model.getPipe("modals.showDialog").run(notification);
+				} else {
+					const notification = Model.getPipe("modals.createNotification").run({
+						message: "Successfully updated",
+						buttonValue: "Ok",
+						callback: () => {
+							this.fetchTopics();
+						}
+					});
+					Model.getPipe("modals.showDialog").run(notification);
+				}
+			}
+		});
+
+		Model.getPipe("modals.showDialog").run(dlg);
+	}
+
 	filterChange () {
 		this.selectRow(-1);
 		const filterValue = this.refs.filter.value;
 
 		for (const row of this.data) {
-			if (row.title.includes(filterValue) || row.creator.includes(filterValue)) {
+			if (row.title.includes(filterValue) || row.creator_name.includes(filterValue)) {
 				row.element!.classList.remove("hidden");
 			} else {
 				row.element!.classList.add("hidden");
@@ -125,13 +165,11 @@ export default class TopicsTab extends Component {
 		if (this.selectedRow !== -1) {
 			this.data[this.selectedRow].element!.style.background = "rgba(50, 50, 50)";
 
-			this.refs.setPassword.style.display = "block";
-			this.refs.editUser.style.display = "block";
-			this.refs.deleteUser.style.display = "block";
+			this.refs.edit.style.display = "block";
+			this.refs.delete.style.display = "block";
 		} else {
-			this.refs.setPassword.style.display = "none";
-			this.refs.editUser.style.display = "none";
-			this.refs.deleteUser.style.display = "none";
+			this.refs.edit.style.display = "none";
+			this.refs.delete.style.display = "none";
 		}
 	}
 }

@@ -17,6 +17,17 @@ export default function deleteTopic (this: Node, ctx: Context): Promise<void> {
 				ctx.status(500).json({ error: true, details: response.data.details });
 			} else {
 				ctx.status(200).json({ error: false });
+				const managerAddr = this.address!.parent.data;
+				managerAddr.push("topics");
+				this.send(managerAddr, {
+					command: "topicDeleted",
+					data: {
+						id: ctx.body.id
+					}
+				});
+				this.send(dbAddress, {
+					command: "clearOrphaned"
+				})
 			}
 		});
 	});

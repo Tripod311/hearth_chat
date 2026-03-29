@@ -25,6 +25,12 @@ import TitlePageRequest from "./nodeInfo/titlePage.js"
 import GetNodeSettingsRequest from "./nodeInfo/getNodeSettings.js"
 import SetNodeSettingsRequest from "./nodeInfo/setNodeSettings.js"
 
+import FetchRelatedRequest from "./related/fetchRelated.js"
+import FetchHandshakesRequest from "./related/fetchHandshakes.js"
+import AcceptHandshakeRequest from "./related/acceptHandshake.js"
+import RejectHandshakeRequest from "./related/rejectHandshake.js"
+import SendHandshakeRequest from "./related/sendHandshake.js"
+
 export default function addAPI (model: Pump) {
 	const root = new Pipe();
 	model.addPipe("api", root);
@@ -59,4 +65,12 @@ export default function addAPI (model: Pump) {
 	nodeInfoRoot.addPipe("titlePage", TitlePageRequest);
 	nodeInfoRoot.addPipe("getNodeSettings", GetNodeSettingsRequest);
 	nodeInfoRoot.addPipe("setNodeSettings", SetNodeSettingsRequest);
+
+	const relatedRoot = new Pipe();
+	root.addPipe("related", relatedRoot);
+	relatedRoot.addPipe("fetchHandshakes", FetchHandshakesRequest);
+	relatedRoot.addPipe("fetchRelated", FetchRelatedRequest);
+	relatedRoot.addPipe("acceptHandshake", AcceptHandshakeRequest);
+	relatedRoot.addPipe("rejectHandshake", RejectHandshakeRequest);
+	relatedRoot.addPipe("sendHandshake", SendHandshakeRequest);
 }

@@ -21,12 +21,12 @@ export default function fetchTitlePage (this: Node, ctx: Context): Promise<void>
 			});
 		} else {
 			const gateAddress = this.address!.parent.data;
-			gateAddress.push("db");
+			gateAddress.push("gate");
 
 			this.chain(gateAddress, {
 				command: "fetchTitle",
 				data: {
-					nodeId: nodeId
+					uuid: nodeId
 				}
 			}, (response: Event) => {
 				if (response.data.error) {

@@ -6,9 +6,9 @@ interface Output {
 	data: any;
 }
 
-const GetNodeSettingsRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const FetchHandshakesRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 	try {
-		const response = await fetch(window.location.origin + "/api/nodeSettings", {
+		const response = await fetch(window.location.origin + "/api/handshakes", {
 			method: "GET"
 		});
 
@@ -28,4 +28,4 @@ const GetNodeSettingsRequest = new AsyncFunctionPipe<undefined, Output>(async ()
 	}
 });
 
-export default GetNodeSettingsRequest
+export default FetchHandshakesRequest

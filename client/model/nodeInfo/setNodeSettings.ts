@@ -17,8 +17,6 @@ interface Output {
 
 const SetNodeSettingsRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const nodeId = window.location.pathname.split('/')[1];
-
 		const response = await fetch(window.location.origin + "/api/nodeSettings", {
 			method: "POST",
 			headers: {

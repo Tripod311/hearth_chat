@@ -3,7 +3,7 @@ import { Node, Dispatcher, Address, Event } from "@tripod311/dispatch"
 import DB from "./db.js"
 import API from "./api.js"
 import Access from "./access.js"
-import Gate from "./gate.js"
+import Gate from "./gate/gate.js"
 import InviteManager from "./inviteManager.js"
 import TopicManager from "./topic/topicManager.js"
 import UploadsTracker from "./uploadsTracker.js"
@@ -24,7 +24,13 @@ export default class Root extends Node {
 		this.db = new DB();
 		this.api = new API(this.db.httpPort, this.db.uuid);
 		this.access = new Access();
-		this.gate = new Gate(this.db.uuid, this.db.gatePort);
+		this.gate = new Gate({
+			uuid: this.db.uuid,
+			title: this.db.title,
+			description: this.db.description,
+			port: this.db.gatePort,
+			ip: ""
+		});
 		this.invites = new InviteManager();
 		this.topicManager = new TopicManager();
 		this.uploadsTracker = new UploadsTracker();

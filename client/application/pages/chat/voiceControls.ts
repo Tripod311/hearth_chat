@@ -17,7 +17,9 @@ export default class VoiceControls {
 	private sendTransport?: SendTransport;
 	private recvTransport?: RecvTransport;
 
-	private stream?: MediaStream;
+	private _audioTrack?: MediaStreamTrack;
+	private _videoTrack?: MediaStreamTrack;
+	private pendingProducerRequest: { audio: boolean; video: boolean; } = { audio: false, video: false };
 	private producers: { audio?: Producer; video?: Producer; } = {};
 	private consumers: Record<string, Consumer> = {};
 	private producerConsumerMap: Record<string, string> = {};
@@ -42,13 +44,14 @@ export default class VoiceControls {
 	}
 
 	createTransport (stream: MediaStream) {
-		this.stream = stream;
-
 		this.onmessage({ command: "createTransport" });
 	}
 
 	deleteTransport () {
 		this.onmessage({ command: "deleteTransport" });
+
+		delete this._audioTrack;
+		delete this._videoTrack;
 
 		this.producers = {};
 		this.consumers = {};
@@ -114,7 +117,11 @@ export default class VoiceControls {
 		});
 		this.sendTransport.on("connectionstatechange", this.transportStateChange.bind(this, "send"));
 
-		await this.createProducers();
+		this.connected = true;
+
+		this.onupdate && this.onupdate();
+
+		this.createConsumers();
 	}
 
 	transportStateChange (tag: string, state: any) {
@@ -134,11 +141,6 @@ export default class VoiceControls {
 		if (data.id === this.sendTransport.id) {
 			this.pending["sendTransport"]();
 			delete this.pending["sendTransport"];
-			this.connected = true;
-
-			this.onupdate && this.onupdate();
-
-			this.createConsumers();
 		} else if (data.id === this.recvTransport.id) {
 			this.pending["recvTransport"]();
 			delete this.pending["recvTransport"];
@@ -153,16 +155,51 @@ export default class VoiceControls {
 		if (this.connected) this.createConsumers();
 	}
 
-	async createProducers () {
-		const videoTrack = this.stream!.getVideoTracks()[0];
-		const audioTrack = this.stream!.getAudioTracks()[0];
+	async createProducer (kind: string) {
+		if (kind === "audio") {
+			this.producers.audio = await this.sendTransport.produce({ track: this._audioTrack });
 
-		if (audioTrack) {
-			this.producers.audio = await this.sendTransport.produce({ track: audioTrack });
+			this.producers.audio.on("transportclose", this.producerDeleted.bind(this, { kind }));
+		} else if (kind === "video") {
+			this.producers.video = await this.sendTransport.produce({ track: this._videoTrack });
+
+			this.producers.video.on("transportclose", this.producerDeleted.bind(this, { kind }));
 		}
-		if (videoTrack) {
-			this.producers.video = await this.sendTransport.produce({ track: videoTrack });
-		}	
+	}
+
+	async deleteProducer (kind: string) {
+		this.onmessage({
+			command: "deleteProducer",
+			data: { kind }
+		});
+	}
+
+	producerCreated (data: { kind: string; id: string; }) {
+		const cb = this.pending[`producer.${data.kind}`];
+		cb && cb({ id: data.id });
+		delete this.pending[`producer.${data.kind}`];
+
+		this.pendingProducerRequest[data.kind] = false;
+
+		this.onupdate && this.onupdate();
+	}
+
+	producerDeleted (data: { kind: string }) {
+		if (data.kind === "audio") {
+			this.producers.audio?.close();
+			delete this.producers.audio;
+
+			if (this._audioTrack !== undefined) this.createProducer("audio");
+			else this.pendingProducerRequest[data.kind] = false;
+		} else if (data.kind === "video") {
+			this.producers.video.close();
+			delete this.producers?.video;
+
+			if (this._videoTrack !== undefined) this.createProducer("video");
+			else this.pendingProducerRequest[data.kind] = false;
+		}
+
+		this.onupdate && this.onupdate();
 	}
 
 	createConsumers () {
@@ -201,12 +238,6 @@ export default class VoiceControls {
 				}
 			}
 		}
-	}
-
-	producerCreated (data: { kind: string; id: string; }) {
-		const cb = this.pending[`producer.${data.kind}`];
-		cb && cb({ id: data.id });
-		delete this.pending[`producer.${data.kind}`];
 	}
 
 	async consumerCreated (data: { consumerId: string; producerId: string; kind: string; rtpParameters: any; }) {
@@ -268,7 +299,11 @@ export default class VoiceControls {
 
 	getVideoStream (id: string): MediaStream | undefined {
 		if (id === this.selfId.toString()) {
-			return this.stream;
+			if (this._videoTrack) {
+				return new MediaStream([this._videoTrack]);
+			} else {
+				return undefined;
+			}
 		} else {
 			const producerId = this.state[id].video;
 
@@ -283,6 +318,42 @@ export default class VoiceControls {
 			if (!consumer) return undefined;
 
 			return new MediaStream([consumer.track]);
+		}
+	}
+
+	get audioTrack (): MediaStreamTrack | undefined {
+		return this._audioTrack;
+	}
+
+	get videoTrack (): MediaStreamTrack | undefined {
+		return this._videoTrack;
+	}
+
+	set audioTrack (track: MediaStreamTrack | undefined) {
+		if (!this.pendingProducerRequest.audio) {
+			this.pendingProducerRequest.audio = true;
+
+			if (this._audioTrack !== undefined) {
+				this.deleteProducer("audio");
+				this._audioTrack = track;
+			} else {
+				this._audioTrack = track;
+				this.createProducer("audio");
+			}
+		}
+	}
+
+	set videoTrack (track: MediaStreamTrack | undefined) {
+		if (!this.pendingProducerRequest.video) {
+			this.pendingProducerRequest.video = true;
+
+			if (this._videoTrack !== undefined) {
+				this.deleteProducer("video");
+				this._videoTrack = track;
+			} else {
+				this._videoTrack = track;
+				this.createProducer("video");
+			}
 		}
 	}
 }

@@ -1,15 +1,17 @@
-<div data-ref="container" class="absolute top-0 right-0 overflow-hidden bg-primary border border-default" style="width:0px; height:0px; transition: width 0.2s, height 0.2s;">
+<div data-ref="container" class="absolute top-0 right-0 overflow-hidden bg-primary border border-default pt-[50px]" style="width:0px; height:0px; transition: width 0.2s, height 0.2s;">
 	<div data-ref="audioDump" class="hidden">
 	</div>
-	<div data-ref="active" class="absolute w-full h-full top-0 lef-0 hidden overflow-auto">
-		<div data-ref="blocks" class="w-full min-h-[300px] flex flex-row flex-wrap justify-center gap-2 p-2">
+	<div class="relative w-full h-full overflow-auto">
+		<div data-ref="blocks" class="w-full grid grid-cols-1 md:grid-cols-2 gap- p-2"></div>
+		<div data-ref="connections" class="flex flex-col gap-2 p-2">
+			<div class="text-xl">Connected users:</div>
 		</div>
 	</div>
-	<div data-ref="inactive" class="absolute w-full h-full top-0 lef-0 flex flex-col justify-center items-center">
-		<div class="bg-secondary w-[200px] rounded-xl p-4 border border-default flex flex-col items-center gap-2">
-			<span data-ref="connectMessage" class="text-lg text-center">Connect with voice/video</span>
-			<div data-ref="connect" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Connect</div>
-		</div>
+	<div class="absolute top-0 left-0 w-full h-[50px] flex flex-row gap-2 p-2 items-center border-b border-default">
+		<div data-ref="connect" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Connect</div>
+		<img data-ref="voice" class="w-[30px] h-[30px] cursor-pointer" />
+		<img data-ref="video" class="w-[30px] h-[30px] cursor-pointer" />
+		<div class="grow"></div>
+		<img data-ref="closeControls" class="w-[30px] h-[30px] cursor-pointer" />
 	</div>
-	<img data-ref="closeControls" class="absolute top-[5px] right-[5px] w-[30px] h-[30px] cursor-pointer" />
 </div>
