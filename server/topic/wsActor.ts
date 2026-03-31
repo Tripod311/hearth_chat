@@ -7,8 +7,8 @@ export default class WSActor extends Actor {
 	private socket: WebSocket;
 	private timeout?: ReturnType<typeof setTimeout>;
 
-	constructor (is_admin: boolean, is_bot: boolean, display_name: string, id: number, node_id: string | null, node_user_id: number, socket: WebSocket) {
-		super(is_admin, is_bot, display_name, id, node_id, node_user_id);
+	constructor (is_admin: boolean, is_bot: boolean, display_name: string, id: number, node_user_id: number, socket: WebSocket) {
+		super(is_admin, is_bot, display_name, id, null, node_user_id);
 
 		this.socket = socket;
 

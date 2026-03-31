@@ -2,6 +2,7 @@ import { WebSocket } from "ws"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 
 import WSActor from "./wsActor.js"
+import ProxyActor from "./proxyActor.js"
 import TopicInterface from "./topicInterface.js"
 
 export default class TopicManager extends Node {
@@ -41,7 +42,7 @@ export default class TopicManager extends Node {
 				delete this.pendingIds[topic_id];
 			}
 
-			const actor = new WSActor(is_admin, is_bot, display_name, id, null, node_user_id, socket);
+			const actor = new WSActor(is_admin, is_bot, display_name, id, node_user_id, socket);
 			this.topics[topic_id]!.connectActor(actor);
 		} catch (err: any) {
 			delete this.pendingIds[topic_id];
@@ -49,8 +50,41 @@ export default class TopicManager extends Node {
 		}
 	}
 
-	handleProxyConnection (event: Event) {
+	async handleProxyConnection (event: Event) {
+		const proxy = event.data.data.proxy;
+		const actor_id = event.data.data.actor_id;
+		const topic_id = event.data.data.topic_id;
+		const node_id = event.data.data.node_id;
 
+		try {
+			if (!this.topics[topic_id]) {
+				if (!this.pendingIds[topic_id]) {
+					this.pendingIds[topic_id] = this.fetchTopic(topic_id);
+				}
+
+				await this.pendingIds[topic_id];
+
+				if (!this.pendingIds[topic_id] && !this.topics[topic_id]) {
+					throw new Error(`Topic ${topic_id} was deleted`);
+				}
+				
+				delete this.pendingIds[topic_id];
+			}
+
+			const actor = new ProxyActor(actor_id, node_id, proxy);
+			this.topics[topic_id]!.connectActor(actor);
+
+			event.response({
+				command: "proxyConnectionResponse",
+				error: false
+			});
+		} catch (err: any) {
+			event.response({
+				command: "proxyConnectionResponse",
+				error: true,
+				details: err.toString()
+			});
+		}
 	}
 
 	fetchTopic (topic_id: number): Promise<void> {

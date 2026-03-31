@@ -2,7 +2,7 @@ import Net from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 
 import NodeConnection from "./nodeConnection.js"
-import ActorProxy from "./actorProxy.js"
+import Proxy from "./proxy.js"
 
 const NODE_CONNECT_AWAIT = 1000 * 60;
 
@@ -53,7 +53,7 @@ export default class Gate extends Node {
 		this.setListener("fetchTtitle", this.fetchTitle.bind(this));
 		this.setListener("fetchTopics", this.fetchTopics.bind(this));
 		this.setListener("fetchRelated", this.fetchRelated.bind(this));
-		this.setListener("wsConnection", this.createProxy.bind(this));
+		this.setListener("wsConnection", this.wsConnection.bind(this));
 	}
 
 	detach () {
@@ -375,9 +375,7 @@ export default class Gate extends Node {
 		if (!node) {
 			socket.destroy();
 		} else {
-			const proxy = new ActorProxy(socket, topic_id, display_name, node_user_id);
-
-			node.connectProxy(proxy);
+			node.createLocalProxy(socket, topic_id, node_user_id, display_name);
 		}
 	}
 }

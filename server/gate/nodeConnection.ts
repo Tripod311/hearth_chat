@@ -1,9 +1,12 @@
 import Net from "net"
+import { WebSocket } from "ws"
 import { Node, Dispatcher, Address, Event, Log, StreamProcessor, SerializeEvent } from "@tripod311/dispatch"
 import type { EventData } from "@tripod311/dispatch"
 import type { NodeInfo } from "./gate.js"
 
-import ActorProxy from "./actorProxy.js"
+import Proxy from "./proxy.js"
+import LocalProxy from "./localProxy.js"
+import RemoteProxy from "./remoteProxy.js"
 
 const NODE_KEEPALIVE = 1000 * 60 * 10;
 
@@ -20,7 +23,7 @@ export default class NodeConnection extends Node {
 	private waitingRelated: Event[] = [];
 
 	private counter: number = 0;
-	private proxies: Record<number, ActorProxy> = {};
+	private proxies: Record<number, Proxy> = {};
 
 	private timeout?: ReturnType<typeof setTimeout>;
 
@@ -79,6 +82,10 @@ export default class NodeConnection extends Node {
 			})
 		}
 
+		for (const id in this.proxies) {
+			this.proxies[id].kill();
+		}
+
 		this.socket.destroy();
 
 		super.detach();
@@ -125,6 +132,12 @@ export default class NodeConnection extends Node {
 			case "fetchRelatedResponse":
 				this.fetchRelatedResponse(event.data);
 				break;
+			case "createProxy":
+				this.processCreateProxy(event.data);
+				break;
+			case "createProxyResponse":
+				this.processCreateProxyResponse(event.data);
+				break;
 			case "proxyEvent":
 				this.processProxyEvent(event.data);
 				break;
@@ -151,7 +164,13 @@ export default class NodeConnection extends Node {
 		);
 		const buf = SerializeEvent(ev);
 
-		this.socket.write(buf);
+		if (!this.socket.destroyed) {
+			this.socket.write(buf, (err: any) => {
+				Log.warning(`Socket disconnected on write: ${err.toString()}`, 0);
+
+				this.socketDisconnected();
+			});
+		}
 	}
 
 	sendHeartbeat () {
@@ -266,10 +285,14 @@ export default class NodeConnection extends Node {
 	}
 
 	refresh () {
-		if (!this.keepAlive) {
+		if (!this.keepAlive && Object.keys(this.proxies).length === 0) {
 			clearTimeout(this.timeout);
 			this.timeout = setTimeout(this.timeoutShutdown.bind(this), NODE_KEEPALIVE);
 		}
+	}
+
+	suspend () {
+		clearTimeout(this.timeout);
 	}
 
 	sendFetchTitle (event: Event) {
@@ -395,23 +418,94 @@ export default class NodeConnection extends Node {
 		this.waitingRelated.length = 0;
 	}
 
-	connectProxy (proxy: ActorProxy) {
+	createLocalProxy (socket: WebSocket, topic_id: number, node_user_id: number, display_name: string) {
+		this.suspend();
+
 		const id = this.counter++;
 
-		this.proxies[id] = proxy;
-		proxy.setLocalId(id);
+		this.proxies[id] = new LocalProxy(socket, id, topic_id, node_user_id, display_name);
 
-		proxy.on("event", this.proxyEvent.bind(this));
-		proxy.on("destroy", this.proxyDestroy.bind(this, id));
+		this.proxies[id].on("event", this.sendProxyEvent.bind(this, id));
+		this.proxies[id].on("destroy", this.proxyDestroy.bind(this, id));
 
-		proxy.kickstart();
+		this.sendEvent({
+			command: "createProxy",
+			data: {
+				id: id,
+				node_user_id: this.proxies[id].node_user_id,
+				display_name: this.proxies[id].display_name,
+				topic_id: this.proxies[id].topic_id
+			}
+		});
 	}
 
-	proxyEvent (data: EventData) {
-		this.sendEvent({
-			command: "proxyEvent",
-			data: data
+	processCreateProxy (data: EventData) {
+		this.suspend();
+
+		const dbAddr = this.address!.parent.parent.data;
+		dbAddr.push("db");
+		this.chain(dbAddr, {
+			command: "updateActor",
+			data: {
+				node_id: this.uuid!,
+				node_user_id: data.data.node_user_id,
+				display_name: data.data.display_name
+			}
+		}, (response: Event) => {
+			if (response.data.error) {
+				this.sendEvent({
+					command: "createProxyResponse",
+					data: { ok: false, id: data.data.id }
+				});
+			} else {
+				const id = this.counter++;
+
+				this.proxies[id] = new RemoteProxy(id, data.data.topic_id, data.data.node_user_id, data.data.display_name);
+
+				this.proxies[id].on("forward", this.sendProxyEvent.bind(this, id));
+				this.proxies[id].on("destroy", this.proxyDestroy.bind(this, id));
+
+				// forward proxy to topic
+				const managerAddr = this.address!.parent.parent.data;
+				managerAddr.push("topics");
+
+				this.chain(managerAddr, {
+					command: "proxyConnection",
+					data: {
+						proxy: this.proxies[id],
+						actor_id: response.data.data.id,
+						node_id: this.uuid!,
+						topic_id: this.proxies[id].topic_id,
+					}
+				}, (tResponse: Event) => {
+					if (tResponse.data.error) {
+						this.sendEvent({
+							command: "createProxyResponse",
+							data: { ok: false, id: data.data.id }
+						});
+						this.proxyDestroy(id);
+					} else {
+						this.sendEvent({
+							command: "createProxyResponse",
+							data: { ok: true, id: data.data.id }
+						});
+						this.proxies[id].ready();
+					}
+				});
+			}
 		});
+	}
+
+	processCreateProxyResponse (data: EventData) {
+		const id = data.data.id;
+
+		if (this.proxies[id]) {
+			if (!data.data.ok) {
+				this.proxyDestroy(id);
+			} else {
+				this.proxies[id].ready();
+			}
+		}
 	}
 
 	proxyDestroy (id: number) {
@@ -419,9 +513,25 @@ export default class NodeConnection extends Node {
 			this.proxies[id].kill();
 			delete this.proxies[id];
 		}
+
+		this.refresh();
+	}
+
+	sendProxyEvent (id: number, message: string) {
+		this.sendEvent({
+			command: "proxyEvent",
+			data: {
+				id: id,
+				message: message
+			}
+		});
 	}
 
 	processProxyEvent (data: EventData) {
-		
+		const id = data.data.id;
+
+		if (this.proxies[id]) {
+			this.proxies[id].receive(data.data.message);
+		}
 	}
 }
