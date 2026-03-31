@@ -42,17 +42,29 @@ export default class Navigation extends Component {
 
 	goToTitle () {
 		this.emit("hide");
-		Model.getPipe("router").run(`${this.nodeId}/title`);
+
+		const sp = window.location.pathname.split("/");
+		const nodeId = sp[1];
+
+		Model.getPipe("router").run(`${nodeId}/title`);
 	}
 
 	goToTopics () {
 		this.emit("hide");
-		Model.getPipe("router").run(`${this.nodeId}/topics`);
+
+		const sp = window.location.pathname.split("/");
+		const nodeId = sp[1];
+
+		Model.getPipe("router").run(`${nodeId}/topics`);
 	}
 
 	goToRelated () {
 		this.emit("hide");
-		Model.getPipe("router").run(`${this.nodeId}/related`);
+
+		const sp = window.location.pathname.split("/");
+		const nodeId = sp[1];
+
+		Model.getPipe("router").run(`${nodeId}/related`);
 	}
 
 	goToAdmin () {

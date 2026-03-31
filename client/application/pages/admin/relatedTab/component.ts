@@ -17,6 +17,7 @@ export default class RelatedTab extends Component {
 		this.refs.handshake.onclick = this.sendHandshake.bind(this);
 
 		this.fetchNodes();
+		this.fetchHandshakes();
 	}
 
 	async fetchNodes () {
@@ -71,13 +72,14 @@ export default class RelatedTab extends Component {
 	}
 
 	async sendHandshake () {
-		const link = this.refs.nodelink.value.trim();
+		const link = this.refs.link.value.trim();
+		const message = this.refs.message.value.trim();
 
 		if (link.length > 0) {
 			const spinner = Model.getPipe("modals.createSpinner").run();
 			Model.getPipe("modals.showDialog").run(spinner);
 
-			const response = await Model.getPipe("api.related.sendHandshake").run(link);
+			const response = await Model.getPipe("api.related.sendHandshake").run({ link, message });
 
 			spinner.emit("close");
 
@@ -137,6 +139,7 @@ export default class RelatedTab extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					await this.fetchHandshakes();
+					await this.fetchNodes();
 				}
 			}
 		});
@@ -162,6 +165,7 @@ export default class RelatedTab extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					await this.fetchHandshakes();
+					await this.fetchNodes();
 				}
 			}
 		});

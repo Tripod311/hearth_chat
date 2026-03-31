@@ -15,6 +15,7 @@ export default function deleteTopic (this: Node, ctx: Context): Promise<void> {
 		}, (response: Event) => {
 			if (response.data.error) {
 				ctx.status(500).json({ error: true, details: response.data.details });
+				resolve();
 			} else {
 				ctx.status(200).json({ error: false });
 				const managerAddr = this.address!.parent.data;
@@ -27,7 +28,8 @@ export default function deleteTopic (this: Node, ctx: Context): Promise<void> {
 				});
 				this.send(dbAddress, {
 					command: "clearOrphaned"
-				})
+				});
+				resolve();
 			}
 		});
 	});

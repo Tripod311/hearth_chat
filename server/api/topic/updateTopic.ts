@@ -23,6 +23,8 @@ export default function updateTopic (this: Node, ctx: Context): Promise<void> {
 			} else {
 				ctx.status(200).json({ error: false });
 			}
+
+			resolve();
 		});
 	});
 }

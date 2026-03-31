@@ -285,6 +285,10 @@ export default class ChatPage extends Component {
 			this.systemMessage("This topic is password protected. Send correct password to read it.");
 		}
 
+		if (!this.topicInfo.can_write) {
+			this.refs.inputContainer.style.display = "none";
+		}
+
 		await this.voiceControls.createDevice();
 		await this.voiceControls.load(data.rtpCapabilities);
 		if (data.iceServers) this.voiceControls.iceServers = JSON.parse(data.iceServers);

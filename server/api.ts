@@ -410,11 +410,11 @@ export default class API extends Node {
 					return;
 				}
 
-				const managerAddr = this.address!.parent.data;
-				managerAddr.push("topics");
-
 				if (this.wsConnections[reqId].topic_node === "self") {
 					this.wsServer.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+						const managerAddr = this.address!.parent.data;
+						managerAddr.push("topics");
+
 						this.send(managerAddr, {
 							command: "wsConnection",
 							data: {
@@ -431,6 +431,22 @@ export default class API extends Node {
 					});
 				} else {
 					// proxy to gate
+					this.wsServer.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+						const gateAddr = this.address!.parent.data;
+						gateAddr.push("gate");
+						
+						this.send(gateAddr, {
+							command: "wsConnection",
+							data: {
+								socket: ws,
+								topic_node: this.wsConnections[reqId].topic_node,
+								topic_id: this.wsConnections[reqId].topic_id,
+								node_user_id: this.wsConnections[reqId].user_id,
+								display_name: dbResponse.data.data.display_name
+							}
+						});
+						delete this.wsConnections[reqId];
+					});
 				}
 			}
 		});

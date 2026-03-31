@@ -18,13 +18,15 @@ export default function allTopics (this: Node, ctx: Context): Promise<void> {
 				} else {
 					ctx.status(200).json({ error: false, data: response.data.data });
 				}
+
+				resolve();
 			});
 		} else {
 			const gateAddress = this.address!.parent.data;
 			gateAddress.push("gate");
 
 			this.chain(gateAddress, {
-				command: "getAllTopics",
+				command: "fetchTopics",
 				data: { uuid: nodeId }
 			}, (response: Event) => {
 				if (response.data.error) {
@@ -32,6 +34,8 @@ export default function allTopics (this: Node, ctx: Context): Promise<void> {
 				} else {
 					ctx.status(200).json({ error: false, data: response.data.data });
 				}
+
+				resolve();
 			});
 		}
 	});

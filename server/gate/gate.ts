@@ -2,6 +2,9 @@ import Net from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 
 import NodeConnection from "./nodeConnection.js"
+import ActorProxy from "./actorProxy.js"
+
+const NODE_CONNECT_AWAIT = 1000 * 60;
 
 export interface NodeInfo {
 	uuid: string;
@@ -16,6 +19,7 @@ export default class Gate extends Node {
 	private server: Net.Server;
 	private counter: number = 0;
 	private pendingChecks: Record<string, Event[]> = {};
+	private pendingConnections: Record<string, { timeout: ReturnType<typeof setTimeout>; events: Event[] }> = {};
 
 	constructor (selfInfo: NodeInfo) {
 		super();
@@ -41,12 +45,22 @@ export default class Gate extends Node {
 		this.makeInitialConnections();
 
 		this.setListener("nodeInfoChanged", this.nodeInfoChanged.bind(this));
+		this.setListener("nodeOnline", this.nodeOnline.bind(this));
 		this.setListener("socketDisconnected", this.socketDisconnected.bind(this));
 		this.setListener("checkNodeRegistered", this.searchNode.bind(this));
 		this.setListener("askResponse", this.askResponse.bind(this));
+		this.setListener("connectNode", this.connectNode.bind(this));
+		this.setListener("fetchTtitle", this.fetchTitle.bind(this));
+		this.setListener("fetchTopics", this.fetchTopics.bind(this));
+		this.setListener("fetchRelated", this.fetchRelated.bind(this));
+		this.setListener("wsConnection", this.createProxy.bind(this));
 	}
 
 	detach () {
+		for (const id in this.pendingConnections) {
+			clearTimeout(this.pendingConnections[id].timeout);
+		}
+
 		this.server.close();
 
 		super.detach();
@@ -70,7 +84,7 @@ export default class Gate extends Node {
 					const socket = Net.createConnection({ host: node.ip, port: node.port });
 
 					const id = (this.counter++).toString();
-					const conn = new NodeConnection(id, socket, this.selfInfo, node.uuid);
+					const conn = new NodeConnection(id, socket, this.selfInfo, node.uuid, true);
 
 					this.addChild(id, conn);
 				}
@@ -170,18 +184,200 @@ export default class Gate extends Node {
 	}
 
 	nodeOnline (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		if (this.pendingConnections[uuid]) {
+			clearTimeout(this.pendingConnections[uuid].timeout);
+			for (const ev of this.pendingConnections[uuid].events) {
+				ev.response({
+					command: "connectNodeResponse",
+					error: false
+				});
+			}
+			delete this.pendingConnections[uuid];
+		}
+
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
 		this.send(dbAddress, {
 			command: "nodeOnline",
-			data: { uuid: event.data.data.uuid }
+			data: { uuid }
 		});
 	}
 
 	nodeInfoChanged (event: Event) {
 		for (const node of Object.values(this.subNodes)) {
 			(node as NodeConnection).sendNodeInfoChanged(event.data.data);
+		}
+	}
+
+	connectNode (event: Event) {
+		const uuid: string = event.data.data.uuid;
+		const ref_uuid: string = event.data.data.ref_uuid;
+
+		// check if there is established connection
+
+		let dstNode: NodeConnection | undefined = undefined;
+
+		for (const nodeId in this.subNodes) {
+			const node = this.subNodes[nodeId] as NodeConnection;
+			if (node.uuid === uuid){
+				dstNode = node;
+				break;
+			}
+		}
+
+		if (dstNode !== undefined) {
+			dstNode.refresh();
+			event.response({
+				command: "connectNodeResponse",
+				error: false
+			});
+			return;
+		}
+
+		// check if there's awaited node
+		if (this.pendingConnections[uuid] !== undefined) {
+			this.pendingConnections[uuid].events.push(event);
+			return;
+		}
+
+		this.pendingConnections[uuid] = {
+			timeout: setTimeout(this.nodeConnectionFailed.bind(this, uuid), NODE_CONNECT_AWAIT),		
+			events: [event]
+		};
+
+		// search for node
+		this.chain(this.address!, {
+			command: "checkNodeRegistered",
+			data: { uuid, ref_uuid }
+		}, (response: Event) => {
+			if (response.data.error) {
+				this.nodeConnectionFailed(uuid);
+			} else {
+				const socket = Net.createConnection({ host: response.data.data.ip, port: response.data.data.port });
+
+				const id = (this.counter++).toString();
+				const conn = new NodeConnection(id, socket, this.selfInfo, uuid, false);
+
+				this.addChild(id, conn);
+			}
+		});
+	}
+
+	nodeConnectionFailed (uuid: string) {
+		if (this.pendingConnections[uuid]) {
+			clearTimeout(this.pendingConnections[uuid].timeout);
+			for (const ev of this.pendingConnections[uuid].events) {
+				ev.response({
+					command: "connectNodeResponse",
+					error: true
+				})
+			}
+			delete this.pendingConnections[uuid];
+		}
+	}
+
+	fetchTitle (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (!node) {
+			event.response({
+				command: "fetchTitleResponse",
+				error: true,
+				details: "Node not found"
+			})
+		} else {
+			node.sendFetchTitle(event);
+		}
+	}
+
+	fetchTopics (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (!node) {
+			event.response({
+				command: "fetchTopicsResponse",
+				error: true,
+				details: "Node not found"
+			})
+		} else {
+			node.sendFetchTopics(event);
+		}
+	}
+
+	fetchRelated (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (!node) {
+			event.response({
+				command: "fetchRelatedResponse",
+				error: true,
+				details: "Node not found"
+			})
+		} else {
+			node.sendFetchRelated(event);
+		}
+	}
+
+	wsConnection (event: Event) {
+		const socket = event.data.data.socket;
+		const uuid = event.data.data.topic_node;
+		const node_user_id = event.data.data.node_user_id;
+		const topic_id = event.data.data.topic_id;
+		const display_name = event.data.data.display_name;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (!node) {
+			socket.destroy();
+		} else {
+			const proxy = new ActorProxy(socket, topic_id, display_name, node_user_id);
+
+			node.connectProxy(proxy);
 		}
 	}
 }

@@ -38,6 +38,7 @@ import fetchHandshakes from "./db/related/fetchHandshakes.js"
 import acceptHandshake from "./db/related/acceptHandshake.js"
 import rejectHandshake from "./db/related/rejectHandshake.js"
 import forgetRelated from "./db/related/forgetRelated.js"
+import addRelated from "./db/related/addRelated.js"
 
 import findActor from "./db/actor/findActor.js"
 
@@ -129,6 +130,8 @@ export default class DB extends Node {
 				ip TEXT,
 				port INTEGER,
 				uuid TEXT,
+				title TEXT,
+				description TEXT,
 				message TEXT
 			);`);
 
@@ -246,6 +249,7 @@ export default class DB extends Node {
 		this.setListener("acceptHandshake", acceptHandshake.bind(this, this.db));
 		this.setListener("rejectHandshake", rejectHandshake.bind(this, this.db));
 		this.setListener("forgetRelated", forgetRelated.bind(this, this.db));
+		this.setListener("addRelated", addRelated.bind(this, this.db));
 
 		this.setListener("findActor", findActor.bind(this, this.db));
 

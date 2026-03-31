@@ -16,12 +16,13 @@ import AdminPage from "./pages/admin/admin.js"
 import AccountPage from "./pages/account/account.js"
 import ChatPage from "./pages/chat/chat.js"
 import TopicsPage from "./pages/topics/topics.js"
+import RelatedPage from "./pages/related/related.js"
 
 export default class Application extends Component {
 	protected static componentName = "Dashboard";
 	protected static template = View;
 
-	private modals: Modals = new Modals;
+	private modals: Modals = new Modals({});
 	private navExpanded: boolean = false;
 	private currentPage: string = "";
 
@@ -42,7 +43,26 @@ export default class Application extends Component {
 		this.slots.navigation.push(navigation);
 		this.refs.logoutButton.onclick = this.logout.bind(this);
 
+		this.attachModals();
+
 		this.verify();
+	}
+
+	attachModals () {
+		if (Model.getPipe("modals")) Model.removePipe("modals");
+
+		const modalsPipe = new Pipe();
+		Model.addPipe("modals", modalsPipe);
+		const createSpinnerPipe = new SyncFunctionPipe<undefined, Component>(this.createSpinner.bind(this));
+		const createNotificationPipe = new SyncFunctionPipe<{ message: string; buttonValue: string; callback?: Function; }, Component>(this.createNotification.bind(this));
+		const createPromptPipe = new SyncFunctionPipe<{ message: string; callback?: Function; }, Component>(this.createPrompt.bind(this));
+		const showDialogPipe = new SyncFunctionPipe<Component, number>(this.modals.showDialog.bind(this.modals));
+		const closeDialogPipe = new SyncFunctionPipe<number, undefined>(this.modals.closeDialog.bind(this.modals));
+		modalsPipe.addPipe("createSpinner", createSpinnerPipe);
+		modalsPipe.addPipe("createNotification", createNotificationPipe);
+		modalsPipe.addPipe("createPrompt", createPromptPipe);
+		modalsPipe.addPipe("showDialog", showDialogPipe);
+		modalsPipe.addPipe("closeDialog", closeDialogPipe);
 	}
 
 	async verify () {
@@ -64,21 +84,6 @@ export default class Application extends Component {
 		} else {
 			Model.getPipe("settings.username").data = result.userInfo.login;
 			Model.getPipe("settings.isAdmin").data = result.userInfo.is_admin;
-
-			if (!Model.getPipe("modals")) {
-				const modalsPipe = new Pipe();
-				Model.addPipe("modals", modalsPipe);
-				const createSpinnerPipe = new SyncFunctionPipe<undefined, Component>(this.createSpinner.bind(this));
-				const createNotificationPipe = new SyncFunctionPipe<{ message: string; buttonValue: string; callback?: Function; }, Component>(this.createNotification.bind(this));
-				const createPromptPipe = new SyncFunctionPipe<{ message: string; callback?: Function; }, Component>(this.createPrompt.bind(this));
-				const showDialogPipe = new SyncFunctionPipe<Component, number>(this.modals.showDialog.bind(this.modals));
-				const closeDialogPipe = new SyncFunctionPipe<number, undefined>(this.modals.closeDialog.bind(this.modals));
-				modalsPipe.addPipe("createSpinner", createSpinnerPipe);
-				modalsPipe.addPipe("createNotification", createNotificationPipe);
-				modalsPipe.addPipe("createPrompt", createPromptPipe);
-				modalsPipe.addPipe("showDialog", showDialogPipe);
-				modalsPipe.addPipe("closeDialog", closeDialogPipe);
-			}
 
 			this.state.update({
 				"headerText": `Hello, ${ Model.getPipe("settings.username").data }`
@@ -124,6 +129,8 @@ export default class Application extends Component {
 				case "topics":
 					this.slots.content.push(new TopicsPage({}));
 					break;
+				case "related":
+					this.slots.content.push(new RelatedPage({}));
 			}
 		}
 	}

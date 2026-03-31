@@ -12,9 +12,12 @@ export default function nodeHandshake (db: Database.Database, event: Event) {
 			event.data.data.message
 		]);
 
+		const row = db.prepare(`SELECT uuid, gate_port as port, title, description FROM settings WHERE id=1`).get()
+
 		event.response({
 			command: "nodeHandshakeResponse",
-			error: false
+			error: false,
+			data: row
 		});
 	} catch (err: any) {
 		event.response({

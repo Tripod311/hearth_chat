@@ -5,31 +5,39 @@ import type { NodeInfo } from "./gate.js"
 
 import ActorProxy from "./actorProxy.js"
 
+const NODE_KEEPALIVE = 1000 * 60 * 10;
+
 export default class NodeConnection extends Node {
 	public id: string;
 	public selfInfo: NodeInfo;
 	public uuid?: string;
-	private ref_uuid?: string;
 	private keepAlive: boolean = false;
 	private socket: Net.Socket;
 	private processor!: StreamProcessor;
 
-	constructor (id: string, socket: Net.Socket, selfInfo: NodeInfo, uuid?: string, ref_uuid?: string) {
+	private waitingTitle: Event[] = [];
+	private waitingTopics: Event[] = [];
+	private waitingRelated: Event[] = [];
+
+	private counter: number = 0;
+	private proxies: Record<number, ActorProxy> = {};
+
+	private timeout?: ReturnType<typeof setTimeout>;
+
+	constructor (id: string, socket: Net.Socket, selfInfo: NodeInfo, uuid?: string, keepAlive: boolean = false) {
 		super();
 
 		this.id = id;
 		this.selfInfo = selfInfo;
 
-		if (uuid) {
-			this.uuid = uuid;
-			this.keepAlive = true;
-		}
-		this.ref_uuid = ref_uuid;
+		this.uuid = uuid;
+		this.keepAlive = keepAlive
 
 		this.socket = socket;
 
 		this.socket.on("end", this.socketDisconnected.bind(this));
 		this.socket.on("close", this.socketDisconnected.bind(this));
+		this.socket.on("error", this.socketDisconnected.bind(this));
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -44,7 +52,34 @@ export default class NodeConnection extends Node {
 	}
 
 	detach () {
-		this.socket.destroySoon();
+		Log.info(`Node ${this.uuid} disconnected`, 0);
+		clearTimeout(this.timeout);
+
+		for (const ev of this.waitingTitle) {
+			ev.response({
+				command: "fetchTitleResponse",
+				error: true,
+				details: "Node disconnected"
+			})
+		}
+
+		for (const ev of this.waitingTopics) {
+			ev.response({
+				command: "fetchTopicsResponse",
+				error: true,
+				details: "Node disconnected"
+			})
+		}
+
+		for (const ev of this.waitingRelated) {
+			ev.response({
+				command: "fetchRelatedResponse",
+				error: true,
+				details: "Node disconnected"
+			})
+		}
+
+		this.socket.destroy();
 
 		super.detach();
 	}
@@ -72,16 +107,39 @@ export default class NodeConnection extends Node {
 			case "nodeInfoChanged":
 				this.processNodeInfoChanged(event.data.data);
 				break;
+			case "fetchTitle":
+				this.processFetchTitle();
+				break;
+			case "fetchTopics":
+				this.processFetchTopics();
+				break;
+			case "fetchRelated":
+				this.processFetchRelated();
+				break;
+			case "fetchTitleResponse":
+				this.fetchTitleResponse(event.data);
+				break;
+			case "fetchTopicsResponse":
+				this.fetchTopicsdResponse(event.data);
+				break;
+			case "fetchRelatedResponse":
+				this.fetchRelatedResponse(event.data);
+				break;
+			case "proxyEvent":
+				this.processProxyEvent(event.data);
+				break;
 		}
 	}
 
 	socketDisconnected () {
-		this.send(this.address!.parent, {
-			command: "socketDisconnected",
-			data: {
-				id: this.id
-			}
-		});
+		if (this.address) {
+			this.send(this.address!.parent, {
+				command: "socketDisconnected",
+				data: {
+					id: this.id
+				}
+			});
+		}
 	}
 
 	sendEvent (data: EventData) {
@@ -103,7 +161,7 @@ export default class NodeConnection extends Node {
 		});
 	}
 
-	processHeartbeat (data: { uuid: string; title: string; description: string; ref_uuid?: string; }) {
+	processHeartbeat (data: { uuid: string; title: string; description: string; }) {
 		this.chain(this.address!.parent, {
 			command: "checkNodeRegistered",
 			data: data
@@ -131,12 +189,19 @@ export default class NodeConnection extends Node {
 				data: { uuid: this.uuid! }
 			});
 			this.processNodeInfoChanged(data);
+
+			Log.info(`Node ${this.uuid} connected`, 0);
+
+			if (!this.keepAlive) {
+				this.timeout = setTimeout(this.timeoutShutdown.bind(this), NODE_KEEPALIVE);
+			}
 		} else {
-			this.socket.destroySoon();
+			this.socket.destroy();
 		}
 	}
 
 	ask (uuid: string) {
+		this.refresh();
 		this.sendEvent({
 			command: "ask",
 			data: { uuid }
@@ -144,6 +209,7 @@ export default class NodeConnection extends Node {
 	}
 
 	askRequest (data: { uuid: string }) {
+		this.refresh();
 		this.chain(this.address!.parent, {
 			command: "checkNodeRegistered",
 			data: data
@@ -163,6 +229,7 @@ export default class NodeConnection extends Node {
 	}
 
 	askResponse (data: { ok: boolean; uuid: string; ip?: string; port?: string; }) {
+		this.refresh();
 		this.send(this.address!.parent, {
 			command: "askResponse",
 			data: data
@@ -170,6 +237,7 @@ export default class NodeConnection extends Node {
 	}
 
 	sendNodeInfoChanged (data: { title: string; description: string; }) {
+		this.refresh();
 		this.sendEvent({
 			command: "nodeInfoChanged",
 			data: data
@@ -177,6 +245,7 @@ export default class NodeConnection extends Node {
 	}
 
 	processNodeInfoChanged (data: { title: string; description: string; }) {
+		this.refresh();
 		if (this.uuid) {
 			const dbAddress = this.address!.parent.parent.data;
 			dbAddress.push("db");
@@ -190,5 +259,169 @@ export default class NodeConnection extends Node {
 				}
 			});
 		}
+	}
+
+	timeoutShutdown () {
+		this.socket.destroy();
+	}
+
+	refresh () {
+		if (!this.keepAlive) {
+			clearTimeout(this.timeout);
+			this.timeout = setTimeout(this.timeoutShutdown.bind(this), NODE_KEEPALIVE);
+		}
+	}
+
+	sendFetchTitle (event: Event) {
+		this.refresh();
+
+		if (this.waitingTitle.length === 0) {
+			this.sendEvent({
+				command: "fetchTitle",
+				data: {}
+			});
+		}
+
+		this.waitingTitle.push(event);
+	}
+
+	sendFetchTopics (event: Event) {
+		this.refresh();
+
+		if (this.waitingTopics.length === 0) {
+			this.sendEvent({
+				command: "fetchTopics",
+				data: {}
+			});
+		}
+
+		this.waitingTopics.push(event);
+	}
+
+	sendFetchRelated (event: Event) {
+		this.refresh();
+
+		if (this.waitingRelated.length === 0) {
+			this.sendEvent({
+				command: "fetchRelated",
+				data: {}
+			});
+		}
+
+		this.waitingRelated.push(event);
+	}
+
+	processFetchTitle () {
+		this.refresh();
+
+		const dbAddress = this.address!.parent.parent.data;
+		dbAddress.push("db");
+
+		this.chain(dbAddress, {
+			command: "fetchTitle",
+			data: {}
+		}, (response: Event) => {
+			this.sendEvent({
+				command: "fetchTitleResponse",
+				error: response.data.error,
+				data: response.data.data
+			})
+		});
+	}
+
+	processFetchTopics () {
+		this.refresh();
+
+		const dbAddress = this.address!.parent.parent.data;
+		dbAddress.push("db");
+
+		this.chain(dbAddress, {
+			command: "getAllTopics",
+			data: {}
+		}, (response: Event) => {
+			this.sendEvent({
+				command: "fetchTopicsResponse",
+				error: response.data.error,
+				data: response.data.data
+			})
+		});
+	}
+
+	processFetchRelated () {
+		this.refresh();
+
+		const dbAddress = this.address!.parent.parent.data;
+		dbAddress.push("db");
+
+		this.chain(dbAddress, {
+			command: "fetchDirectNodes",
+			data: {}
+		}, (response: Event) => {
+			this.sendEvent({
+				command: "fetchRelatedResponse",
+				error: response.data.error,
+				data: response.data.data
+			})
+		});
+	}
+
+	fetchTitleResponse (data: EventData) {
+		this.refresh();
+
+		for (const ev of this.waitingTitle) {
+			ev.response(data);
+		}
+
+		this.waitingTitle.length = 0;
+	}
+
+	fetchTopicsdResponse (data: EventData) {
+		this.refresh();
+
+		for (const ev of this.waitingTopics) {
+			ev.response(data);
+		}
+
+		this.waitingTopics.length = 0;
+	}
+
+	fetchRelatedResponse (data: EventData) {
+		this.refresh();
+
+		for (const ev of this.waitingRelated) {
+			ev.response(data);
+		}
+
+		this.waitingRelated.length = 0;
+	}
+
+	connectProxy (proxy: ActorProxy) {
+		const id = this.counter++;
+
+		this.proxies[id] = proxy;
+		proxy.setLocalId(id);
+
+		proxy.on("event", this.proxyEvent.bind(this));
+		proxy.on("destroy", this.proxyDestroy.bind(this, id));
+
+		proxy.kickstart();
+	}
+
+	proxyEvent (data: EventData) {
+		this.sendEvent({
+			command: "proxyEvent",
+			data: data
+		});
+	}
+
+	proxyDestroy (id: number) {
+		if (this.proxies[id]) {
+			this.proxies[id].kill();
+			delete this.proxies[id];
+		}
+	}
+
+	processProxyEvent (data: EventData) {
+		
 	}
 }

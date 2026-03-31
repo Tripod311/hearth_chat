@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  hearthchat:
+    image: tripod311/hearthchat:latest
+    container_name: hearthchat
+
+    network_mode: host
+
+    restart: unless-stopped
+
+    environment:
+      - PORT_BASE=45000
+      - PORT_RANGE=999
+
+    volumes:
+      - ./rel_data:/app/data

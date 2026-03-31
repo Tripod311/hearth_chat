@@ -15,6 +15,7 @@ export default function getDisplayName (this: Node, ctx: Context): Promise<void>
 			} else {
 				ctx.status(200).json({ error: false, data: response.data.data });
 			}
+			resolve();
 		});
 	});
 }

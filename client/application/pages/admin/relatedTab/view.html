@@ -1,12 +1,13 @@
 <div class="w-full h-full overflow-auto">
-	<div class="w-full flex flex-row p-2 mb-6 items-center gap-2">
-		<input data-ref="nodelink" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl grow" />
+	<div class="w-full flex flex-col p-2 mb-6 items-center gap-2 border border-default rounded-xl">
+		<input data-ref="link" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl" placeholder="Node address" />
+		<textarea data-ref="message" type="text" class="w-full min-h-[200px] p-2 border border-default bg-white text-black rounded-xl" placeholder="Handshake message"></textarea>
 		<div data-ref="handshake" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none whitespace-nowrap">Send handshake</div>
 	</div>
-	<div data-ref="handshakes" class="w-full flex flex-col gap-4">
+	<div data-ref="handshakes" class="w-full flex flex-col gap-4 p-2">
 		<!--slot:handshakes-->
 	</div>
-	<div class="w-full flex flex-col gap-4">
+	<div class="w-full flex flex-col gap-4 p-2">
 		<div class="text-xl">Related nodes:</div>
 		<!--slot:nodes-->
 	</div>

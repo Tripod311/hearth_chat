@@ -5,6 +5,7 @@ export default function createInvite (this: Node, ctx: Context): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (!ctx.locals.userInfo.is_admin) {
 			ctx.status(403).json({ error: true, details: "Access forbidden" });
+			resolve();
 		} else {
 			const inviteAddr = this.address!.parent.data;
 			inviteAddr.push("invites");
@@ -18,6 +19,7 @@ export default function createInvite (this: Node, ctx: Context): Promise<void> {
 				} else {
 					ctx.status(200).json({ error: false, data: response.data.data });
 				}
+				resolve();
 			});
 		}
 	});

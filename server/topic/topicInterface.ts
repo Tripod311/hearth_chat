@@ -159,7 +159,7 @@ export default class TopicInterface extends Node {
 	}
 
 	pushMessage (actor: Actor, data: { content: string; attachments: string; }) {
-		if (actor.authorized) {
+		if (actor.authorized && (!this.author_write_only || actor.is_admin || (actor.node_id === null && actor.node_user_id === this.author_id))) {
 			const created_at = Math.floor((Date.now())/1000);
 
 			this.chain(this.dbAddress, {
@@ -194,7 +194,12 @@ export default class TopicInterface extends Node {
 					password: data.content
 				}
 			}, (response: Event) => {
-				
+				if (!response.data.error) {
+					actor.authorized = true;
+					actor.proxy(JSON.stringify({
+						command: "authorize"
+					}));
+				}
 			});
 		}
 	}

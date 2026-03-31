@@ -16,12 +16,14 @@ export default function acceptHandshake (db: Database.Database, event: Event) {
 			port,
 			title,
 			description,
+			direct
 		) VALUES (
 			?,
 			?,
 			?,
 			?,
-			?
+			?,
+			1
 		)`).run([ row.uuid, row.ip, row.port, row.title, row.description ]);
 
 		event.response({

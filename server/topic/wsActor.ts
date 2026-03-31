@@ -100,24 +100,26 @@ export default class WSActor extends Actor {
 	}
 
 	async createTransports () {
-		await super.createSendTransport();
-		await super.createRecvTransport();
+		if (this.authorized) {
+			await super.createSendTransport();
+			await super.createRecvTransport();
 
-		this.socket.send(JSON.stringify({
-			command: "transportCreated",
-			data: {
-				send: {
-					id: this.sendTransport,
-					...this.media.webrtcTransportInfo(this.sendTransport!)
-				},
-				recv: {
-					id: this.recvTransport,
-					...this.media.webrtcTransportInfo(this.recvTransport!)
+			this.socket.send(JSON.stringify({
+				command: "transportCreated",
+				data: {
+					send: {
+						id: this.sendTransport,
+						...this.media.webrtcTransportInfo(this.sendTransport!)
+					},
+					recv: {
+						id: this.recvTransport,
+						...this.media.webrtcTransportInfo(this.recvTransport!)
+					}
 				}
-			}
-		}));
+			}));
 
-		this.emit("mediaChange");
+			this.emit("mediaChange");
+		}
 	}
 
 	async deleteTransports () {

@@ -27,7 +27,8 @@ export default async function updateTopic (db: Database.Database, event: Event) 
 				title=?,
 				description=?,
 				guest_access=?,
-				author_write_only=?
+				author_write_only=?,
+				password=NULL
 			WHERE id = ?
 		`).run([ event.data.data.title, event.data.data.description, Number(event.data.data.guest_access), Number(event.data.data.author_write_only), event.data.data.id ]);
 		}

@@ -35,5 +35,7 @@ export default function uploadFiles (this: Node, ctx: Context): Promise<void> {
 		});
 
 		ctx.status(200).json({ error: false, data: toReturn });
+
+		resolve();
 	});
 }

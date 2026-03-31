@@ -22,6 +22,8 @@ export default function createTopic (this: Node, ctx: Context): Promise<void> {
 			} else {
 				ctx.status(200).json({ error: false });
 			}
+
+			resolve();
 		});
 	});
 }

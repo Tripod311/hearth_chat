@@ -1,8 +1,8 @@
 import { AsyncFunctionPipe } from "@tripod311/pump"
 
 interface Input {
-	link: string;
-	message: string;
+	from: string;
+	to: string;
 }
 
 interface Output {
@@ -10,9 +10,9 @@ interface Output {
 	details?: string;
 }
 
-const SendHandshakeRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
+const GoToRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/sendHandshake", {
+		const response = await fetch(`${window.location.origin}/api/goTo`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -35,4 +35,4 @@ const SendHandshakeRequest = new AsyncFunctionPipe<Input, Output>(async (input: 
 	}
 });
 
-export default SendHandshakeRequest
+export default GoToRequest

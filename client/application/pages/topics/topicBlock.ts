@@ -56,7 +56,7 @@ export default class TopicBlock extends Component {
 		}
 
 		if (this.refs.features.children.length === 0) {
-			this.refs.features.style.display = "none";
+			this.refs.fb.style.display = "none";
 		}
 	}
 
