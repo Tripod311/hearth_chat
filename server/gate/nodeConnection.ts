@@ -7,6 +7,7 @@ import type { NodeInfo } from "./gate.js"
 import Proxy from "./proxy.js"
 import LocalProxy from "./localProxy.js"
 import RemoteProxy from "./remoteProxy.js"
+import FileHandles from "./fileHandles.js"
 
 const NODE_KEEPALIVE = 1000 * 60 * 10;
 
@@ -21,6 +22,7 @@ export default class NodeConnection extends Node {
 	private waitingTitle: Event[] = [];
 	private waitingTopics: Event[] = [];
 	private waitingRelated: Event[] = [];
+	private fileHandles!: FileHandles;
 
 	private counter: number = 0;
 	private proxies: Record<number, Proxy> = {};
@@ -48,6 +50,10 @@ export default class NodeConnection extends Node {
 
 		this.processor = new StreamProcessor(dispatcher, this.socket);
 		this.processor.on("message", this.processMessage.bind(this));
+
+		this.fileHandles = new FileHandles();
+		this.fileHandles.onEvent = this.sendEvent.bind(this);
+		this.addChild("fileHandles", this.fileHandles);
 
 		if (this.uuid) {
 			this.sendHeartbeat();
@@ -141,6 +147,18 @@ export default class NodeConnection extends Node {
 			case "proxyEvent":
 				this.processProxyEvent(event.data);
 				break;
+			case "pushOneFile":
+				this.fileHandles.processPushOneFile(event.data);
+				break;
+			case "pushOneFileResponse":
+				this.fileHandles.processPushOneFileResponse(event.data);
+				break;
+			case "getFile":
+				this.fileHandles.processGetFile(event.data);
+				break;
+			case "getFileResponse":
+				this.fileHandles.processGetFileResponse(event.data);
+				break;
 		}
 	}
 
@@ -166,9 +184,11 @@ export default class NodeConnection extends Node {
 
 		if (!this.socket.destroyed) {
 			this.socket.write(buf, (err: any) => {
-				Log.warning(`Socket disconnected on write: ${err.toString()}`, 0);
+				if (err) {
+					Log.warning(`Socket disconnected on write: ${err.toString()}`, 0);
 
-				this.socketDisconnected();
+					this.socketDisconnected();
+				}
 			});
 		}
 	}
@@ -212,7 +232,7 @@ export default class NodeConnection extends Node {
 			Log.info(`Node ${this.uuid} connected`, 0);
 
 			if (!this.keepAlive) {
-				this.timeout = setTimeout(this.timeoutShutdown.bind(this), NODE_KEEPALIVE);
+				this.refresh();
 			}
 		} else {
 			this.socket.destroy();
@@ -425,7 +445,7 @@ export default class NodeConnection extends Node {
 
 		this.proxies[id] = new LocalProxy(socket, id, topic_id, node_user_id, display_name);
 
-		this.proxies[id].on("event", this.sendProxyEvent.bind(this, id));
+		this.proxies[id].on("forward", this.sendProxyEvent.bind(this, id));
 		this.proxies[id].on("destroy", this.proxyDestroy.bind(this, id));
 
 		this.sendEvent({

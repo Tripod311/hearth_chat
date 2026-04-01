@@ -8,6 +8,7 @@ interface Input {
 interface Output {
 	error: boolean;
 	details?: string;
+	selfId: boolean;
 }
 
 const GoToRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
@@ -25,7 +26,8 @@ const GoToRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) =>
 		if (data.error) throw new Error(data.details);
 
 		return {
-			error: false
+			error: false,
+			selfId: data.selfId
 		}
 	} catch (err: any) {
 		return {

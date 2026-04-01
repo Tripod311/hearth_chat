@@ -4,38 +4,61 @@ import { Node, Event } from "@tripod311/dispatch"
 
 export default function uploadFiles (this: Node, ctx: Context): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const trackerAddress = this.address!.parent.data;
-		trackerAddress.push("uploadsTracker");
+		const uuidPart = ctx.body["##nodeUUID##"];
 
-		let toCheck: string[] = [];
-		let toReturn: string[] = [];
+		if (uuidPart !== undefined && uuidPart.originalFileName === undefined) {
+			const gateAddress = this.address!.parent.data;
+			gateAddress.push("gate");
 
-		for (const partName in ctx.body) {
-			const part = ctx.body[partName];
-			if (part.originalFileName === undefined) continue;
+			const files = Object.values(ctx.body).filter((p: any) => p.originalFileName !== undefined);
 
-			let ext: string = "";
-			if (part.originalFileName.indexOf('.') !== -1) {
-				const sp = part.originalFileName.split(".");
-				ext = sp[sp.length - 1];
+			this.chain(gateAddress, {
+				command: "pushFiles",
+				data: {
+					uuid: uuidPart,
+					files: files
+				}
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+
+				resolve();
+			});
+		} else {
+			const trackerAddress = this.address!.parent.data;
+			trackerAddress.push("uploadsTracker");
+
+			let toCheck: string[] = [];
+
+			for (const partName in ctx.body) {
+				const part = ctx.body[partName];
+				if (part.originalFileName === undefined) continue;
+
+				let ext: string = "";
+				if (part.originalFileName.indexOf('.') !== -1) {
+					const sp = part.originalFileName.split(".");
+					ext = sp[sp.length - 1];
+				}
+				const rand = crypto.randomUUID();
+				const newName = `./data/files/${rand}${ext.length > 0 ? '.' + ext : ''}`;
+				const attName = `${rand}${ext.length > 0 ? '.' + ext : ''}`;
+
+				part.move(newName);
+
+				toCheck.push(attName);
 			}
-			const rand = crypto.randomUUID();
-			const newName = `./data/files/${rand}${ext.length > 0 ? '.' + ext : ''}`;
-			const attName = `${rand}${ext.length > 0 ? '.' + ext : ''}`;
 
-			part.move(newName);
+			this.send(trackerAddress, {
+				command: "remember",
+				data: { files: toCheck }
+			});
 
-			toCheck.push(attName);
-			toReturn.push(attName);
+			ctx.status(200).json({ error: false, data: toCheck });
+
+			resolve();
 		}
-
-		this.send(trackerAddress, {
-			command: "remember",
-			data: { files: toCheck }
-		});
-
-		ctx.status(200).json({ error: false, data: toReturn });
-
-		resolve();
 	});
 }

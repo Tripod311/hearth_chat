@@ -10,6 +10,11 @@ const UploadFilesRequest = new AsyncFunctionPipe<File[], Output>(async (input: F
 	try {
 		const formData = new FormData();
 
+		const sp = window.location.pathname.split('/');
+		if (sp.length > 2) {
+			formData.append("##nodeUUID##", sp[1]);
+		}
+
 		for (let index=0; index<input.length; index++) {
 			formData.append(index.toString(), input[index], input[index].name);
 		}

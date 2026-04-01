@@ -44,27 +44,39 @@ export default class Navigation extends Component {
 		this.emit("hide");
 
 		const sp = window.location.pathname.split("/");
-		const nodeId = sp[1];
+		if (sp.length > 2) {
+			const nodeId = sp[1];
 
-		Model.getPipe("router").run(`${nodeId}/title`);
+			Model.getPipe("router").run(`${nodeId}/title`);
+		} else {
+			Model.getPipe("router").run(`self/title`);
+		}
 	}
 
 	goToTopics () {
 		this.emit("hide");
 
 		const sp = window.location.pathname.split("/");
-		const nodeId = sp[1];
+		if (sp.length > 2) {
+			const nodeId = sp[1];
 
-		Model.getPipe("router").run(`${nodeId}/topics`);
+			Model.getPipe("router").run(`${nodeId}/topics`);
+		} else {
+			Model.getPipe("router").run(`self/topics`);
+		}
 	}
 
 	goToRelated () {
 		this.emit("hide");
 
 		const sp = window.location.pathname.split("/");
-		const nodeId = sp[1];
+		if (sp.length > 2) {
+			const nodeId = sp[1];
 
-		Model.getPipe("router").run(`${nodeId}/related`);
+			Model.getPipe("router").run(`${nodeId}/related`);
+		} else {
+			Model.getPipe("router").run(`self/related`);
+		}
 	}
 
 	goToAdmin () {

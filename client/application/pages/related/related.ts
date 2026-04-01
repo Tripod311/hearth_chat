@@ -62,10 +62,11 @@ export default class RelatedPage extends Component {
 			});
 			Model.getPipe("modals.showDialog").run(notification);
 		} else {
-			const sp = window.location.pathname.split("/");
-			const nodeId = sp[1];
-
-			Model.getPipe("router").run(`${nodeId}/title`);
+			if (response.selfId) {
+				Model.getPipe("router").run(`self/title`);
+			} else {
+				Model.getPipe("router").run(`${uuid}/title`);
+			}
 		}
 	}
 }

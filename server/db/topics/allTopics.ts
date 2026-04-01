@@ -10,10 +10,11 @@ export default function allTopics (db: Database.Database, event: Event) {
 				topics.guest_access as guest_access,
 				topics.author_write_only as author_write_only,
 				(topics.password IS NOT NULL) as password_protected,
-				actors.node_user_id as creator_id,
+				users.id as creator_id,
 				actors.display_name as creator_name
 			FROM topics
-			LEFT JOIN actors ON actors.node_user_id = topics.creator_id
+			LEFT JOIN users ON users.id = topics.creator_id
+			LEFT JOIN actors ON actors.node_id IS NULL AND actors.node_user_id = users.id
 		`).all();
 
 		event.response({

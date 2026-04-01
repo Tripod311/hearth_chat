@@ -39,11 +39,13 @@ import acceptHandshake from "./api/related/acceptHandshake.js"
 import rejectHandshake from "./api/related/rejectHandshake.js"
 import sendHandshake from "./api/related/sendHandshake.js"
 import forgetRelated from "./api/related/forgetRelated.js"
+import goTo from "./api/related/goTo.js"
+import getFile from "./api/related/getFile.js"
 
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
-	maxRequestSize: 1024 * 1024 * 150,
-    maxFileSize: 1024 * 1024 * 100,
+	maxRequestSize: 1024 * 1024 * 35,
+    maxFileSize: 1024 * 1024 * 30,
     maxFieldSize: 1024 * 1024 * 10,
     maxPartHeaderSize: 1024 * 16,
     maxParts: 50,
@@ -70,7 +72,7 @@ export default class API extends Node {
 	private instance: Currents;
 	private baseChain: RouteHandler[];
 	private port: number;
-	private uuid: string;
+	public uuid: string;
 
 	constructor (port: number, uuid: string) {
 		super();
@@ -120,6 +122,11 @@ export default class API extends Node {
 				})
 			])
 		);
+
+		this.instance.get('/:nodeId/files/:fileName', this.baseChain.concat([
+			verify.bind(this),
+			getFile.bind(this)
+		]));
 
 		// user actions
 
@@ -292,6 +299,12 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			forgetRelated.bind(this)
+		]));
+
+		this.instance.post("/api/goTo", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			goTo.bind(this)
 		]));
 	}
 

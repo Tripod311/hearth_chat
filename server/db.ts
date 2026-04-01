@@ -41,6 +41,7 @@ import forgetRelated from "./db/related/forgetRelated.js"
 import addRelated from "./db/related/addRelated.js"
 
 import findActor from "./db/actor/findActor.js"
+import updateActor from "./db/actor/updateActor.js"
 
 interface UserFilter {
 	login?: string;
@@ -252,6 +253,7 @@ export default class DB extends Node {
 		this.setListener("addRelated", addRelated.bind(this, this.db));
 
 		this.setListener("findActor", findActor.bind(this, this.db));
+		this.setListener("updateActor", updateActor.bind(this, this.db));
 
 		this.setListener("pushMessage", pushMessage.bind(this, this.db));
 		this.setListener("fetchMessages", fetchMessages.bind(this, this.db));

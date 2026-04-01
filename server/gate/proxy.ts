@@ -6,6 +6,7 @@ export default abstract class Proxy extends EventEmitter {
 	public display_name: string;
 	public node_user_id: number;
 	protected is_ready: boolean = false;
+	protected is_destroyed: boolean = false;
 
 	constructor (id: number, topic_id: number, node_user_id: number, display_name: string) {
 		super();
@@ -17,7 +18,10 @@ export default abstract class Proxy extends EventEmitter {
 	}
 
 	onDestroyed () {
-		this.emit("destroy");
+		if (!this.is_destroyed) {
+			this.is_destroyed = true;
+			this.emit("destroy");
+		}
 	}
 
 	abstract ready (): void;

@@ -23,7 +23,7 @@ export default class LocalProxy extends Proxy {
 		}
 
 		for (const str of this.inBuffer) {
-			this.emit("event", str);
+			this.socket.send(str);
 		}
 
 		this.outBuffer.length = 0;
@@ -46,7 +46,7 @@ export default class LocalProxy extends Proxy {
 		if (!this.is_ready) {
 			this.inBuffer.push(data);
 		} else {
-			this.emit("event", data);
+			this.socket.send(data);
 		}
 	}
 }

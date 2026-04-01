@@ -19,6 +19,14 @@ export default function forgetRelated (this: Node, ctx: Context): Promise<void> 
 					ctx.status(500).json({ error: true, details: response.data.details });
 				} else {
 					ctx.status(200).json({ error: false, data: response.data.data });
+
+					const gateAddress = this.address!.parent.data;
+					gateAddress.push("gate");
+
+					this.send(gateAddress, {
+						command: "closeConnection",
+						data: { uuid: ctx.body.uuid }
+					})
 				}
 
 				resolve();

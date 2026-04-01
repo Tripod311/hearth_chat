@@ -1,5 +1,6 @@
 import Net from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
+import { StreamingMultipartFile } from "@tripod311/currents"
 
 import NodeConnection from "./nodeConnection.js"
 import Proxy from "./proxy.js"
@@ -50,10 +51,13 @@ export default class Gate extends Node {
 		this.setListener("checkNodeRegistered", this.searchNode.bind(this));
 		this.setListener("askResponse", this.askResponse.bind(this));
 		this.setListener("connectNode", this.connectNode.bind(this));
-		this.setListener("fetchTtitle", this.fetchTitle.bind(this));
+		this.setListener("fetchTitle", this.fetchTitle.bind(this));
 		this.setListener("fetchTopics", this.fetchTopics.bind(this));
 		this.setListener("fetchRelated", this.fetchRelated.bind(this));
 		this.setListener("wsConnection", this.wsConnection.bind(this));
+		this.setListener("closeConnection", this.closeConnection.bind(this));
+		this.setListener("pushFiles", this.pushFiles.bind(this));
+		this.setListener("getFile", this.getFile.bind(this));
 	}
 
 	detach () {
@@ -180,6 +184,17 @@ export default class Gate extends Node {
 			}
 
 			this.delChild(id);
+		}
+	}
+
+	closeConnection (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		for (const id in this.subNodes) {
+			if ((this.subNodes[id] as NodeConnection).uuid === uuid) {
+				this.delChild(id);
+				return;
+			}
 		}
 	}
 
@@ -376,6 +391,100 @@ export default class Gate extends Node {
 			socket.destroy();
 		} else {
 			node.createLocalProxy(socket, topic_id, node_user_id, display_name);
+		}
+	}
+
+	async pushFiles (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (node === undefined) {
+			for (const file of event.data.data.files) {
+				await (file as StreamingMultipartFile).clear();
+			}
+
+			event.response({
+				command: "pushFilesResponse",
+				error: true,
+				details: "Node not found"
+			});
+		} else {
+			const handlesAddr = this.address!.data;
+			handlesAddr.push(node.id, "fileHandles");
+
+			this.chain(handlesAddr, {
+				command: "pushFiles",
+				data: event.data.data
+			}, (response: Event) => {
+				if (response.data.error) {
+					event.response({
+						command: "pushFilesResponse",
+						error: true,
+						details: response.data.details
+					});
+				} else {
+					event.response({
+						command: "pushFilesResponse",
+						error: false,
+						data: response.data.data
+					});
+				}
+			});
+		}
+	}
+
+	getFile (event: Event) {
+		const uuid = event.data.data.uuid;
+
+		let node: NodeConnection | undefined = undefined;
+
+		for (const id in this.subNodes) {
+			const n = this.subNodes[id] as NodeConnection;
+
+			if (n.uuid === uuid) {
+				node = n;
+				break;
+			}
+		}
+
+		if (node === undefined) {
+			event.response({
+				command: "getFileResponse",
+				error: true,
+				details: "Node not found"
+			});
+		} else {
+			const handlesAddr = this.address!.data;
+			handlesAddr.push(node.id, "fileHandles");
+
+			this.chain(handlesAddr, {
+				command: "getFile",
+				data: event.data.data
+			}, (response: Event) => {
+				if (response.data.error) {
+					event.response({
+						command: "getFileResponse",
+						error: true,
+						details: response.data.details
+					});
+				} else {
+					event.response({
+						command: "getFileResponse",
+						error: false,
+						data: response.data.data
+					});
+				}
+			});
 		}
 	}
 }

@@ -74,13 +74,7 @@ export default class Application extends Component {
 		spinner.emit("close");
 
 		if (result.error) {
-			const notification = new NotificationDialog({
-				message: result.details,
-				buttonValue: "To authorization",
-				callback: () => { Model.getPipe("router").run("auth"); }
-			});
-
-			this.modals.showDialog(notification);
+			Model.getPipe("router").run("auth");
 		} else {
 			Model.getPipe("settings.username").data = result.userInfo.login;
 			Model.getPipe("settings.isAdmin").data = result.userInfo.is_admin;
