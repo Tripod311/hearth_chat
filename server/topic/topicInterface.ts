@@ -1,5 +1,6 @@
 import mediasoup from "mediasoup"
 import MediasoupController from "../mediasoupController.js"
+import webpush from "web-push"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 import TopicMedia from "./topicMedia.js"
@@ -173,6 +174,10 @@ export default class TopicInterface extends Node {
 				}
 			}, (response: Event) => {
 				if (!response.data.error) {
+					if (data.content.startsWith("@push")) {
+						this.sendPush(actor.display_name, data.content);
+					}
+
 					this.notify(JSON.stringify({
 						command: "message",
 						data: {
@@ -232,5 +237,45 @@ export default class TopicInterface extends Node {
 				data: this.gatherMediaState()
 			}));
 		}, 1000);
+	}
+
+	sendPush (display_name: string, content: string) {
+		this.chain(this.dbAddress, {
+			command: "fetchPushSubscriptions",
+			data: {}
+		}, async (response: Event) => {
+			if (response.data.error) {
+				Log.error(`FetchPushSubscriptions error: ${response.data.details}`, 0);
+			} else {
+				let toDelete: string[] = [];
+
+				for (const subscription of response.data.data) {
+					try {
+						await webpush.sendNotification({
+							endpoint: subscription.endpoint,
+							keys: {
+								p256dh: subscription.p256dh,
+								auth: subscription.auth
+							}
+						}, JSON.stringify({
+							title: `[${display_name} in ${this.title}]:${content.slice(5)}`
+						}));
+					} catch (err: any) {
+						if (err.statusCode === 410) {
+							toDelete.push(subscription.endpoint);
+						} else {
+							Log.warning(`Push notification error: ${err.toString()}`, 0);
+						}
+					}
+				}
+
+				if (toDelete.length > 0) {
+					this.send(this.dbAddress, {
+						command: "deletePushBulk",
+						data: toDelete
+					});
+				}
+			}
+		});
 	}
 }

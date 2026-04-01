@@ -2,8 +2,11 @@ import { Pipe, SyncFunctionPipe } from "@tripod311/pump"
 import { Component } from "@tripod311/splash"
 import View from "./main.html?raw"
 
-import MenuIcon from "../icons/menu.svg"
 import Model from "../model/main.js"
+import MenuIcon from "../icons/menu.svg"
+import BellIcon from "../icons/bell-ringing.svg"
+import BellCrossIcon from "../icons/bell-cross.svg"
+import LogoutIcon from "../icons/logout.svg"
 
 import Modals from "../modals/modals.js"
 import SpinnerDialog from "../modals/dialogs/spinnerDialog.js"
@@ -17,6 +20,8 @@ import AccountPage from "./pages/account/account.js"
 import ChatPage from "./pages/chat/chat.js"
 import TopicsPage from "./pages/topics/topics.js"
 import RelatedPage from "./pages/related/related.js"
+
+import { initPush, getPushStatus } from "./push.js"
 
 export default class Application extends Component {
 	protected static componentName = "Dashboard";
@@ -41,7 +46,13 @@ export default class Application extends Component {
 		const navigation = new Navigation({})
 		navigation.on("hide", this.toggleNav.bind(this));
 		this.slots.navigation.push(navigation);
+
+		this.refs.logoutButton.src = LogoutIcon;
 		this.refs.logoutButton.onclick = this.logout.bind(this);
+
+		this.setNotificationIcon();
+
+		this.refs.notificationButton.onclick = this.toggleSubscription.bind(this);
 
 		this.attachModals();
 
@@ -152,5 +163,69 @@ export default class Application extends Component {
 			message: input.message,
 			callback: input.callback
 		});
+	}
+
+	async setNotificationIcon () {
+		const result = await getPushStatus();
+
+		if (!result.supported) {
+			this.notificationButton.style.display = "none";
+		} else {
+			if (result.subscribed) {
+				this.notificationButton.src = BellCrossIcon;
+			} else {
+				this.notificationButton.src = BellIcon;
+			}
+		}
+	}
+
+	async toggleSubscription () {
+		const current = await getPushStatus();
+
+		if (!current.supported) return;
+
+		if (current.subscribed) {
+			const spinner = new SpinnerDialog({});
+			this.modals.showDialog(spinner);
+
+			const result = await Model.getPipe("api.push.delete").run({
+				endpoint: subscription.endpoint
+			});
+
+			spinner.emit("close");
+
+			if (result.error) {
+				const notification = Model.getPipe("modals.createNotification").run({ message: result.details, buttonValue: "Close" });
+				Model.getPipe("modals.showDialog").run(notification);
+			} else {
+				const notification = Model.getPipe("modals.createNotification").run({ message: "Success", buttonValue: "Close" });
+				Model.getPipe("modals.showDialog").run(notification);
+				this.setNotificationIcon();
+			}
+
+			await current.subscription.unsubscribe();
+		} else {
+			const subscription = await initPush();
+
+			const spinner = new SpinnerDialog({});
+			this.modals.showDialog(spinner);
+
+			const result = await Model.getPipe("api.push.add").run({
+				endpoint: subscription.endpoint,
+				p256dh: subscription.keys.p256dh,
+				auth: subscription.keys.auth
+			});
+
+			spinner.emit("close");
+
+			if (result.error) {
+				const notification = Model.getPipe("modals.createNotification").run({ message: result.details, buttonValue: "Close" });
+				Model.getPipe("modals.showDialog").run(notification);
+			} else {
+				const notification = Model.getPipe("modals.createNotification").run({ message: "Success", buttonValue: "Close" });
+				Model.getPipe("modals.showDialog").run(notification);
+				this.setNotificationIcon();
+			}
+		}
 	}
 }

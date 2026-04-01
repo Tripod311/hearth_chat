@@ -43,6 +43,11 @@ import addRelated from "./db/related/addRelated.js"
 import findActor from "./db/actor/findActor.js"
 import updateActor from "./db/actor/updateActor.js"
 
+import addPushSubscription from "./db/push/add.js"
+import deletePushSubscription from "./db/push/delete.js"
+import fetchPushSubscriptions from "./db/push/fetch.js"
+import deletePushBulk from "./db/push/deleteBulk.js"
+
 interface UserFilter {
 	login?: string;
 	is_admin?: number;
@@ -169,6 +174,16 @@ export default class DB extends Node {
 				FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE SET NULL
 			);`);
 
+			this.db.exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER,
+				endpoint TEXT UNIQUE,
+				p256dh TEXT,
+				auth TEXT,
+
+				FOREIGN KEY(user_ud) REFERENCES users(id) ON DELETE CASCADE
+			);`);
+
 			this.db.exec(`CREATE INDEX IF NOT EXISTS idx_message_topic_id ON messages(topic_id, id)`);
 			this.db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_topic_created ON messages(topic_id, created_at);`);
 			this.db.exec(`CREATE INDEX IF NOT EXISTS idx_messages_actor_id ON messages(topic_id, actor_id);`);
@@ -257,6 +272,11 @@ export default class DB extends Node {
 
 		this.setListener("pushMessage", pushMessage.bind(this, this.db));
 		this.setListener("fetchMessages", fetchMessages.bind(this, this.db));
+
+		this.setListener("addPushSubscription", addPushSubscription.bind(this, this.db));
+		this.setListener("deletePushSubscription", deletePushSubscription.bind(this, this.db));
+		this.setListener("fetchPushSubscriptions", fetchPushSubscriptions.bind(this, this.db));
+		this.setListener("deletePushBulk", deletePushBulk.bind(this, this.db));
 
 		this.setListener("checkAssigned", this.checkAssigned.bind(this));
 		this.setListener("clearOrphaned", this.clearOrphaned.bind(this));

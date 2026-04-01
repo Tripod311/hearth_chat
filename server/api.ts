@@ -42,6 +42,9 @@ import forgetRelated from "./api/related/forgetRelated.js"
 import goTo from "./api/related/goTo.js"
 import getFile from "./api/related/getFile.js"
 
+import addPushSubscription from "./api/push/addPushSubscription.js"
+import deletePushSubscription from "./api/push/deletePushSubscription.js"
+
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
 	maxRequestSize: 1024 * 1024 * 35,
@@ -305,6 +308,20 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			goTo.bind(this)
+		]));
+
+		// push subscriptions
+
+		this.instance.post("/api/addPush", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			addPushSubscription.bind(this)
+		]));
+
+		this.instance.post("/api/deletePush", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			deletePushSubscription.bind(this)
 		]));
 	}
 

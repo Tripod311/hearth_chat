@@ -33,6 +33,9 @@ import SendHandshakeRequest from "./related/sendHandshake.js"
 import ForgetRelatedRequest from "./related/forgetRelated.js"
 import GoToRequest from "./related/goTo.js"
 
+import AddPushSubscriptionRequest from "./push/addPushSubscription.js"
+import DeletePushSubscriptionRequest from "./push/deletePushSubscription.js"
+
 export default function addAPI (model: Pump) {
 	const root = new Pipe();
 	model.addPipe("api", root);
@@ -77,4 +80,9 @@ export default function addAPI (model: Pump) {
 	relatedRoot.addPipe("sendHandshake", SendHandshakeRequest);
 	relatedRoot.addPipe("forgetRelated", ForgetRelatedRequest);
 	relatedRoot.addPipe("goTo", GoToRequest);
+
+	const pushRoot = new Pipe();
+	root.addPipe("push", pushRoot);
+	pushRoot.addPipe("add", AddPushSubscriptionRequest);
+	pushRoot.addPipe("delete", DeletePushSubscriptionRequest);
 }
