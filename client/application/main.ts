@@ -169,12 +169,12 @@ export default class Application extends Component {
 		const result = await getPushStatus();
 
 		if (!result.supported) {
-			this.notificationButton.style.display = "none";
+			this.refs.notificationButton.style.display = "none";
 		} else {
 			if (result.subscribed) {
-				this.notificationButton.src = BellCrossIcon;
+				this.refs.notificationButton.src = BellCrossIcon;
 			} else {
-				this.notificationButton.src = BellIcon;
+				this.refs.notificationButton.src = BellIcon;
 			}
 		}
 	}
