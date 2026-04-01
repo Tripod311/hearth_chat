@@ -9,6 +9,7 @@ export default function addPushSubscription (this: Node, ctx: Context): Promise<
 		this.chain(dbAddress, {
 			command: "addPushSubscription",
 			data: {
+				user_id: ctx.locals.userInfo.id,
 				endpoint: ctx.body.endpoint,
 				p256dh: ctx.body.p256dh,
 				auth: ctx.body.auth

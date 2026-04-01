@@ -181,7 +181,7 @@ export default class DB extends Node {
 				p256dh TEXT,
 				auth TEXT,
 
-				FOREIGN KEY(user_ud) REFERENCES users(id) ON DELETE CASCADE
+				FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 			);`);
 
 			this.db.exec(`CREATE INDEX IF NOT EXISTS idx_message_topic_id ON messages(topic_id, id)`);
