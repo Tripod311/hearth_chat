@@ -31,6 +31,7 @@ import uploadFiles from "./api/topic/uploadFiles.js"
 import fetchTitlePage from "./api/node/fetchTitlePage.js"
 import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
+import fetchVapid from "./api/node/fetchVapid.js"
 
 import nodeHandshake from "./api/related/nodeHandshake.js"
 import fetchRelated from "./api/related/fetchRelated.js"
@@ -253,6 +254,11 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			setNodeSettings.bind(this)
+		]));
+
+		this.instance.get("/api/vapid", this.baseChain.concat([
+			verify.bind(this),
+			fetchVapid.bind(this)
 		]));
 
 		// ws setup

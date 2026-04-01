@@ -8,6 +8,7 @@ import InviteManager from "./inviteManager.js"
 import TopicManager from "./topic/topicManager.js"
 import UploadsTracker from "./uploadsTracker.js"
 import MediasoupController from "./mediasoupController.js"
+import "./vapidKeys.js"
 
 export default class Root extends Node {
 	private db: DB;

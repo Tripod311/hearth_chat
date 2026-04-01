@@ -1,5 +1,5 @@
 server_dist
 client_dist
 node_modules
-config.json
 data
+vapid.json

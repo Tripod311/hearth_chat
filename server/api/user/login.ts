@@ -31,7 +31,14 @@ export default function login (this: Node, ctx: Context): Promise<void> {
 							maxAge: 60 * 60 * 24,
 							path: "/"
 						});
-						ctx.status(200).json({ error: false, data: { id: dbResponse.data.data.id, login: ctx.body.login, is_admin: dbResponse.data.data.is_admin, is_bot: dbResponse.data.data.is_bot }});
+						ctx.status(200).json({
+							error: false,
+							data: {
+								id: dbResponse.data.data.id,
+								login: ctx.body.login,
+								is_admin: dbResponse.data.data.is_admin,
+								is_bot: dbResponse.data.data.is_bot
+							}});
 					}
 
 					resolve();

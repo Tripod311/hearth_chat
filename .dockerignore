@@ -1,3 +1,5 @@
 node_modules
 client_dist
 server_dist
+vapid.json
+data

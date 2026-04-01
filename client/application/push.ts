@@ -1,4 +1,4 @@
-const PUBLIC_VAPID_KEY = 'ТВОЙ_KEY';
+import Model from "../model/main.js"
 
 function urlBase64ToUint8Array(base64String: string) {
 	const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -29,7 +29,7 @@ export async function initPush() {
 
 	const subscription = await registration.pushManager.subscribe({
 		userVisibleOnly: true,
-		applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+		applicationServerKey: urlBase64ToUint8Array(Model.getPipe("settings.vapid_key").data)
 	});
 
 	await fetch('/api/push/subscribe', {

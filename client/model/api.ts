@@ -24,6 +24,7 @@ import UploadFilesRequest from "./topic/uploadFiles.js"
 import TitlePageRequest from "./nodeInfo/titlePage.js"
 import GetNodeSettingsRequest from "./nodeInfo/getNodeSettings.js"
 import SetNodeSettingsRequest from "./nodeInfo/setNodeSettings.js"
+import FetchVapidRequest from "./nodeInfo/fetchVapid.js"
 
 import FetchRelatedRequest from "./related/fetchRelated.js"
 import FetchHandshakesRequest from "./related/fetchHandshakes.js"
@@ -70,6 +71,7 @@ export default function addAPI (model: Pump) {
 	nodeInfoRoot.addPipe("titlePage", TitlePageRequest);
 	nodeInfoRoot.addPipe("getNodeSettings", GetNodeSettingsRequest);
 	nodeInfoRoot.addPipe("setNodeSettings", SetNodeSettingsRequest);
+	nodeInfoRoot.addPipe("fetchVapid", FetchVapidRequest);
 
 	const relatedRoot = new Pipe();
 	root.addPipe("related", relatedRoot);

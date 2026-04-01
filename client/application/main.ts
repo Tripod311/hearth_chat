@@ -94,6 +94,14 @@ export default class Application extends Component {
 				"headerText": `Hello, ${ Model.getPipe("settings.username").data }`
 			});
 
+			const vapidResult = await Model.getPipe("api.nodeInfo.fetchVapid").run();
+
+			if (vapidResult.error) {
+				console.error(`Can't fetch VAPID key: ${vapidResult.details}`);
+			} else {
+				Model.getPipe("settings.vapid_key").data = vapidResult.data;
+			}
+
 			this.setPage(this.state.getProp("page"), this.state.getProp("id"));
 		}
 	}
