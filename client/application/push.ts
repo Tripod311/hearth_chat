@@ -14,15 +14,15 @@ export async function initPush() {
 	if (!('serviceWorker' in navigator)) return;
 	if (!('PushManager' in window)) return;
 
+	const registration = await navigator.serviceWorker.register('/sw.js', {
+		updateViaCache: 'none'
+	});
+
 	const existing = await registration.pushManager.getSubscription();
 
 	if (existing) {
 		return existing;
 	}
-
-	const registration = await navigator.serviceWorker.register('/sw.js', {
-		updateViaCache: 'none'
-	});
 
 	const permission = await Notification.requestPermission();
 	if (permission !== 'granted') return;
