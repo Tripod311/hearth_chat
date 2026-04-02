@@ -190,6 +190,9 @@ export default class DB extends Node {
 
 			const nodeId = crypto.randomUUID();
 
+			const httpPort = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 443;
+			const gatePort = process.env.GATE_PORT ? parseInt(process.env.GATE_PORT) : 443;
+
 			this.db.prepare(`INSERT INTO settings (uuid, http_port, gate_port, title, description, title_page) VALUES (
 					?,
 					?,
@@ -199,16 +202,16 @@ export default class DB extends Node {
 					'[]'
 			);`).run([
 				nodeId,
-				process.env.HTTP_PORT || 443,
-				process.env.GATE_PORT || 14567
+				httpPort,
+				gatePort
 			]);
 			this.createRootUser();
 
 			this.node_id = nodeId;
 			this.node_title = "HearthChat Node";
 			this.node_description = "Fresh node";
-			this.gate_port = process.env.GATE_PORT || 14567;
-			this.http_port = process.env.HTTP_PORT || 443;
+			this.gate_port = httpPort;
+			this.http_port = gatePort;
 		} else {
 			const row = this.db.prepare("SELECT uuid, title, description, http_port, gate_port, announced_ip, ice_candidates FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; announced_ip: string | null; ice_candidates: string | null; title: string; description: string; };
 
