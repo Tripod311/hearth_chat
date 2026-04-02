@@ -264,19 +264,27 @@ export default class Gate extends Node {
 		};
 
 		// search for node
-		this.chain(this.address!, {
+		const dbAddress = this.address!.parent.data;
+		dbAddress.push("db");
+
+		this.chain(dbAddress, {
 			command: "checkNodeRegistered",
 			data: { uuid, ref_uuid }
 		}, (response: Event) => {
 			if (response.data.error) {
 				this.nodeConnectionFailed(uuid);
 			} else {
-				const socket = Net.createConnection({ host: response.data.data.ip, port: response.data.data.port });
+				try {
+					const socket = Net.createConnection({ host: response.data.data.ip, port: response.data.data.port });
 
-				const id = (this.counter++).toString();
-				const conn = new NodeConnection(id, socket, this.selfInfo, uuid, false);
+					const id = (this.counter++).toString();
+					const conn = new NodeConnection(id, socket, this.selfInfo, uuid, false);
 
-				this.addChild(id, conn);
+					this.addChild(id, conn);
+				} catch (err: any) {
+					Log.error(`ConnectNode error: ${err.toString()}`, 0);
+					this.nodeConnectionFailed(uuid);
+				}
 			}
 		});
 	}

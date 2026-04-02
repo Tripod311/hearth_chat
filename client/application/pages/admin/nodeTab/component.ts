@@ -32,10 +32,10 @@ export default class NodeTab extends Component {
 		} else {
 			this.refs.title.value = response.data.title;
 			this.refs.description.value = response.data.description;
-			this.refs.title_page.value = response.data.title_page;
+			this.refs.title_page.value = JSON.stringify(JSON.parse(response.data.title_page), null, 4);
 			this.refs.http_port.value = response.data.http_port;
 			this.refs.gate_port.value = response.data.gate_port;
-			this.refs.ice_candidates.value = response.data.ice_candidates;
+			this.refs.ice_candidates.value = JSON.stringify(JSON.parse(response.data.ice_candidates), null, 4);
 			this.refs.announced_ip.value = response.data.announced_ip;
 		}
 	}

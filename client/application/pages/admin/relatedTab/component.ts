@@ -39,6 +39,8 @@ export default class RelatedTab extends Component {
 
 			for (const n of response.data) {
 				const drop = TemplateCache.createDrop("relatedNodeView", { title: n.title, description: n.description });
+				drop.refs.copyLink.onclick = this.copyLink.bind(this, n.uuid);
+				drop.refs.enter.onclick = this.enter.bind(this, n.uuid);
 				drop.refs.forget.onclick = this.forgetNode.bind(this, n.uuid);
 				this.slots.nodes.push(Component.generic({}, drop.node));
 			}
@@ -93,6 +95,14 @@ export default class RelatedTab extends Component {
 				await this.fetchNodes();
 			}
 		}
+	}
+
+	async copyLink (uuid: string) {
+		await navigator.clipboard.writeText(`/${uuid}/title`);
+	}
+
+	enter (uuid: string) {
+		Model.getPipe("router").run(`${uuid}/title`);
 	}
 
 	forgetNode (uuid: string) {

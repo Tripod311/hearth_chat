@@ -116,17 +116,6 @@ export default class API extends Node {
 			])
 		);
 
-		this.instance.get('/self/files/*', this.baseChain
-			.concat([
-				verify.bind(this),
-				ServeStatic({
-					basePath: "/self/files/",
-					rootDir: path.join(process.cwd(), 'data/files'),
-					cacheControl: ["public", "max-age=31536000", "immutable"]
-				})
-			])
-		);
-
 		this.instance.get('/:nodeId/files/:fileName', this.baseChain.concat([
 			verify.bind(this),
 			getFile.bind(this)

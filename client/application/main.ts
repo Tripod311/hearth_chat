@@ -27,12 +27,20 @@ export default class Application extends Component {
 	protected static componentName = "Dashboard";
 	protected static template = View;
 
+	private nodeId!: string;
 	private modals: Modals = new Modals({});
 	private navExpanded: boolean = false;
 	private currentPage: string = "";
 
 	mounted () {
 		super.mounted();
+
+		const sp = window.location.pathname.split('/');
+		if (sp.length > 2) {
+			this.nodeId = sp[1];
+		} else {
+			this.nodeId = "self";
+		}
 
 		this.slots.modals.push(this.modals);
 
@@ -121,7 +129,17 @@ export default class Application extends Component {
 	}
 
 	setPage (type="title", id="") {
-		if (this.currentPage !== type) {
+		let nodeId: string;
+
+		const sp = window.location.pathname.split('/');
+		if (sp.length > 2) {
+			nodeId = sp[1];
+		} else {
+			nodeId = "self";
+		}
+
+		if (this.currentPage !== type || nodeId !== this.nodeId) {
+			this.nodeId = nodeId;
 			this.currentPage = type;
 
 			this.slots.content.clear();

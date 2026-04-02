@@ -192,19 +192,23 @@ export default class DB extends Node {
 
 			this.db.prepare(`INSERT INTO settings (uuid, http_port, gate_port, title, description, title_page) VALUES (
 					?,
-					8080,
-					14567,
+					?,
+					?,
 					'HearthChat Node',
 					'Fresh node',
 					'[]'
-			);`).run([nodeId]);
+			);`).run([
+				nodeId,
+				process.env.HTTP_PORT || 443,
+				process.env.GATE_PORT || 14567
+			]);
 			this.createRootUser();
 
 			this.node_id = nodeId;
 			this.node_title = "HearthChat Node";
 			this.node_description = "Fresh node";
-			this.gate_port = 14567;
-			this.http_port = 8080;
+			this.gate_port = process.env.GATE_PORT || 14567;
+			this.http_port = process.env.HTTP_PORT || 443;
 		} else {
 			const row = this.db.prepare("SELECT uuid, title, description, http_port, gate_port, announced_ip, ice_candidates FROM settings WHERE id=1").get() as { uuid: string; gate_port: number; http_port: number; announced_ip: string | null; ice_candidates: string | null; title: string; description: string; };
 

@@ -66,7 +66,7 @@ export default class ChatPage extends Component {
 	protected static template = View;
 
 	private static readonly CHUNK_SIZE = 50;
-	private static readonly LIMIT = 200;
+	private static readonly LIMIT = 150;
 
 	private socket!: WebSocket;
 	private enterListener!: (e: KeyEvent) => void;

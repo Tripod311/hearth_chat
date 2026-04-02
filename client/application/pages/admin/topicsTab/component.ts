@@ -53,6 +53,9 @@ export default class TopicsTab extends Component {
 				const tr = document.createElement("tr");
 				tr.style.cursor = "pointer";
 				let td = document.createElement("td");
+				td.innerText = row.id;
+				tr.appendChild(td);
+				td = document.createElement("td");
 				td.innerText = row.title;
 				tr.appendChild(td);
 				td = document.createElement("td");

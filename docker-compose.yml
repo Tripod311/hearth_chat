@@ -2,16 +2,18 @@ version: "3.9"
 
 services:
   hearthchat:
-    image: tripod311/hearthchat:latest
-    container_name: hearthchat
+    image: tripod311/hearth_chat:latest
+    container_name: hearth_chat
 
     network_mode: host
 
     restart: unless-stopped
 
     environment:
+      - HTTP_PORT=443
+      - GATE_PORT=14567
       - PORT_BASE=45000
       - PORT_RANGE=999
 
     volumes:
-      - ./rel_data:/app/data
+      - ./data:/app/data

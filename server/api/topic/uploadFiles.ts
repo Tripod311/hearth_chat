@@ -6,7 +6,7 @@ export default function uploadFiles (this: Node, ctx: Context): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const uuidPart = ctx.body["##nodeUUID##"];
 
-		if (uuidPart !== undefined && uuidPart.originalFileName === undefined) {
+		if (uuidPart !== undefined && uuidPart.originalFileName === undefined && uuidPart !== "self") {
 			const gateAddress = this.address!.parent.data;
 			gateAddress.push("gate");
 
