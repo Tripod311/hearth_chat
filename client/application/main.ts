@@ -197,7 +197,7 @@ export default class Application extends Component {
 			this.modals.showDialog(spinner);
 
 			const result = await Model.getPipe("api.push.delete").run({
-				endpoint: subscription.endpoint
+				endpoint: current.subscription.toJSON().endpoint
 			});
 
 			spinner.emit("close");
@@ -205,6 +205,7 @@ export default class Application extends Component {
 			if (result.error) {
 				const notification = Model.getPipe("modals.createNotification").run({ message: result.details, buttonValue: "Close" });
 				Model.getPipe("modals.showDialog").run(notification);
+				this.setNotificationIcon();
 			} else {
 				const notification = Model.getPipe("modals.createNotification").run({ message: "Success", buttonValue: "Close" });
 				Model.getPipe("modals.showDialog").run(notification);
@@ -218,10 +219,12 @@ export default class Application extends Component {
 			const spinner = new SpinnerDialog({});
 			this.modals.showDialog(spinner);
 
+			const subData = subscription.toJSON();
+
 			const result = await Model.getPipe("api.push.add").run({
-				endpoint: subscription.endpoint,
-				p256dh: subscription.keys.p256dh,
-				auth: subscription.keys.auth
+				endpoint: subData.endpoint,
+				p256dh: subData.keys.p256dh,
+				auth: subData.keys.auth
 			});
 
 			spinner.emit("close");
