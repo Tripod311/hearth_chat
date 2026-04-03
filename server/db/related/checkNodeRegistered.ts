@@ -5,7 +5,7 @@ export default function checkNodeRegistered (db: Database.Database, event: Event
 	try {
 		const row = db.prepare(`SELECT ip, port, title, description FROM related WHERE uuid=?`).get([ event.data.data.uuid ]);
 
-		if (!row) throw new Error("Node not found");
+		if (!row) throw new Error("The node is either offline or the handshake has not been completed");
 
 		event.response({
 			command: "checkNodeRegisteredResponse",

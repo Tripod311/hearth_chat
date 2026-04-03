@@ -15,6 +15,7 @@ export default class NodeConnection extends Node {
 	public id: string;
 	public selfInfo: NodeInfo;
 	public uuid?: string;
+	public ref_uuid?: string;
 	private keepAlive: boolean = false;
 	private socket: Net.Socket;
 	private processor!: StreamProcessor;
@@ -29,13 +30,14 @@ export default class NodeConnection extends Node {
 
 	private timeout?: ReturnType<typeof setTimeout>;
 
-	constructor (id: string, socket: Net.Socket, selfInfo: NodeInfo, uuid?: string, keepAlive: boolean = false) {
+	constructor (id: string, socket: Net.Socket, selfInfo: NodeInfo, uuid?: string, ref_uuid?: string, keepAlive: boolean = false) {
 		super();
 
 		this.id = id;
 		this.selfInfo = selfInfo;
 
 		this.uuid = uuid;
+		this.ref_uuid = ref_uuid;
 		this.keepAlive = keepAlive
 
 		this.socket = socket;
@@ -50,6 +52,7 @@ export default class NodeConnection extends Node {
 
 		this.processor = new StreamProcessor(dispatcher, this.socket);
 		this.processor.on("message", this.processMessage.bind(this));
+		this.processor.on("error", this.socketDisconnected.bind(this));
 
 		this.fileHandles = new FileHandles();
 		this.fileHandles.onEvent = this.sendEvent.bind(this);
@@ -111,7 +114,7 @@ export default class NodeConnection extends Node {
 			case "heartbeatResponse":
 				this.processHeartbeatResponse(event.data.data);
 				break;
-			case "askRequest":
+			case "ask":
 				this.askRequest(event.data.data);
 				break;
 			case "askResponse":
@@ -196,17 +199,17 @@ export default class NodeConnection extends Node {
 	sendHeartbeat () {
 		this.sendEvent({
 			command: "heartbeat",
-			data: { uuid: this.selfInfo.uuid, title: this.selfInfo.title, description: this.selfInfo.description }
+			data: { uuid: this.selfInfo.uuid, ref_uuid: this.ref_uuid, title: this.selfInfo.title, description: this.selfInfo.description }
 		});
 	}
 
-	processHeartbeat (data: { uuid: string; title: string; description: string; }) {
+	processHeartbeat (data: { uuid: string; ref_uuid: string; title: string; description: string; }) {
 		this.chain(this.address!.parent, {
 			command: "checkNodeRegistered",
 			data: data
 		}, (response: Event) => {
 			if (response.data.error || this.normalizedIP !== response.data.data.ip) {
-				Log.info(`Node ${data.uuid} is not recognised (handshake not completed or changed IP). Complete handshake`, 0);
+				Log.info(`Node ${data.uuid} is not recognised (handshake not completed or changed IP). Redo handshake`, 0);
 				this.socketDisconnected();
 			} else {
 				this.uuid = data.uuid;
@@ -217,6 +220,7 @@ export default class NodeConnection extends Node {
 				});
 
 				this.processHeartbeatResponse({ title: data.title, description: data.description });
+				this.processNodeInfoChanged({ title: data.title, description: data.description });
 			}
 		})
 	}
@@ -277,6 +281,10 @@ export default class NodeConnection extends Node {
 
 	sendNodeInfoChanged (data: { title: string; description: string; }) {
 		this.refresh();
+
+		this.selfInfo.title = data.title;
+		this.selfInfo.description = data.description;
+
 		this.sendEvent({
 			command: "nodeInfoChanged",
 			data: data

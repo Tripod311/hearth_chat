@@ -88,7 +88,7 @@ export default class Gate extends Node {
 					const socket = Net.createConnection({ host: node.ip, port: node.port });
 
 					const id = (this.counter++).toString();
-					const conn = new NodeConnection(id, socket, this.selfInfo, node.uuid, true);
+					const conn = new NodeConnection(id, socket, this.selfInfo, node.uuid, undefined, true);
 
 					this.addChild(id, conn);
 				}
@@ -108,7 +108,7 @@ export default class Gate extends Node {
 				// ask referenced neighbor
 				let ref: NodeConnection | undefined = undefined;
 
-				for (const node of Object.values(this.subNodes.values)) {
+				for (const node of Object.values(this.subNodes)) {
 					if ((node as NodeConnection).uuid === event.data.data.ref_uuid) {
 						ref = node as NodeConnection;
 						break;
@@ -165,6 +165,21 @@ export default class Gate extends Node {
 					});
 				}
 			}
+		} else if (this.pendingConnections[uuid]) {
+			const dbAddress = this.address!.parent.data;
+			dbAddress.push("db");
+
+			this.send(dbAddress, {
+				command: "rememberNode",
+				data: { uuid: uuid, ip: event.data.data.ip, port: event.data.data.port }
+			});
+
+			const socket = Net.createConnection({ host: event.data.data.ip, port: event.data.data.port });
+
+			const id = (this.counter++).toString();
+			const conn = new NodeConnection(id, socket, this.selfInfo, uuid, event.data.data.ref_uuid, false);
+
+			this.addChild(id, conn);
 		}
 	}
 
@@ -173,7 +188,11 @@ export default class Gate extends Node {
 		const child = this.getChild(id);
 
 		if (child) {
-			if ((child as NodeConnection).uuid) {
+			const uuid = (child as NodeConnection).uuid;
+
+			if (uuid) {
+				this.nodeConnectionFailed(uuid);
+
 				const dbAddress = this.address!.parent.data;
 				dbAddress.push("db");
 
@@ -195,6 +214,18 @@ export default class Gate extends Node {
 				this.delChild(id);
 				return;
 			}
+		}
+
+		if (this.pendingConnections[uuid]) {
+			clearTimeout(this.pendingConnections[uuid].timeout);
+			for (const ev of this.pendingConnections[uuid].events) {
+				ev.response({
+					command: "connectNodeResponse",
+					error: true,
+					details: "Node connection closed"
+				});
+			}
+			delete this.pendingConnections[uuid];
 		}
 	}
 
@@ -222,6 +253,9 @@ export default class Gate extends Node {
 	}
 
 	nodeInfoChanged (event: Event) {
+		this.selfInfo.title = event.data.data.title;
+		this.selfInfo.description = event.data.data.description;
+
 		for (const node of Object.values(this.subNodes)) {
 			(node as NodeConnection).sendNodeInfoChanged(event.data.data);
 		}
@@ -263,22 +297,37 @@ export default class Gate extends Node {
 			events: [event]
 		};
 
-		// search for node
+		// search for node in db
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
 		this.chain(dbAddress, {
 			command: "checkNodeRegistered",
-			data: { uuid, ref_uuid }
+			data: { uuid }
 		}, (response: Event) => {
 			if (response.data.error) {
-				this.nodeConnectionFailed(uuid);
+				// ask ref node
+				let refNode: NodeConnection | undefined = undefined;
+
+				for (const nodeId in this.subNodes) {
+					const node = this.subNodes[nodeId] as NodeConnection;
+					if (node.uuid === ref_uuid){
+						refNode = node;
+						break;
+					}
+				}
+
+				if (refNode === undefined) {
+					this.nodeConnectionFailed(uuid);
+				} else {
+					refNode.ask(uuid);
+				}
 			} else {
 				try {
 					const socket = Net.createConnection({ host: response.data.data.ip, port: response.data.data.port });
 
 					const id = (this.counter++).toString();
-					const conn = new NodeConnection(id, socket, this.selfInfo, uuid, false);
+					const conn = new NodeConnection(id, socket, this.selfInfo, uuid, ref_uuid, false);
 
 					this.addChild(id, conn);
 				} catch (err: any) {
