@@ -3,13 +3,11 @@ import { AsyncFunctionPipe } from "@tripod311/pump"
 interface Output {
 	error: boolean;
 	details?: string;
-	data: any[];
+	data?: any[];
 }
 
-const TitlePageRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const TitlePageRequest = new AsyncFunctionPipe<string, Output>(async (nodeId: string) => {
 	try {
-		const nodeId = window.location.pathname.split('/')[1];
-
 		const response = await fetch(window.location.origin + "/api/titlePage", {
 			method: "POST",
 			headers: {

@@ -34,5 +34,6 @@ const SetPasswordRequest = new AsyncFunctionPipe<Input, Output>(async (input: In
 		}
 	}
 });
+SetPasswordRequest.wipeInput = true;
 
 export default SetPasswordRequest

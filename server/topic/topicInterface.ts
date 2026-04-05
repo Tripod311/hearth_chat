@@ -183,6 +183,7 @@ export default class TopicInterface extends Node {
 						data: {
 							id: response.data.data.id,
 							actor_id: actor.id,
+							is_guest: actor.node_id !== null,
 							display_name: actor.display_name,
 							content: data.content,
 							attachments: data.attachments,
@@ -277,5 +278,14 @@ export default class TopicInterface extends Node {
 				}
 			}
 		});
+	}
+
+	kickActor (id: number) {
+		for (const actor of this.actors) {
+			if (actor.id === id) {
+				actor.kill();
+				break;
+			}
+		}
 	}
 }

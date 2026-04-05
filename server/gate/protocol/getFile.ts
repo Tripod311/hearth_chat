@@ -20,7 +20,11 @@ function getFile (this: NodeConnection, event: Event) {
 		baseEvent: event,
 		timeout: setTimeout(
 			() => {
-				this.callMethod("clearGet", getId)
+				event.response({
+					command: "getFileResponse",
+					error: true,
+					details: "Timeout"
+				});
 			},
 			FILE_TIMEOUT
 		)
@@ -72,10 +76,11 @@ async function receiveGetFile (this: NodeConnection, data: EventData) {
 
 function getFileResponse (this: NodeConnection, data: EventData) {
 	const waiting = this.getVariable('waitingGets');
-	const getId = data.data.id;
+	const getId = data.data.getId;
 	const getData = waiting.get(getId);
 
 	if (getData) {
+		clearTimeout(getData.timeout);
 		if (data.data.ok) {
 			getData.baseEvent.response({
 				command: "getFileResponse",
@@ -86,7 +91,7 @@ function getFileResponse (this: NodeConnection, data: EventData) {
 			getData.baseEvent.response({
 				command: "getFileResponse",
 				error: true,
-				details: data.data.details
+				details: data.details
 			});
 		}
 
@@ -98,6 +103,7 @@ async function clearAllGets (this: NodeConnection) {
 	const waiting = this.getVariable('waitingGets');
 
 	for (const getData of waiting.values()) {
+		clearTimeout(getData.timeout);
 		getData.baseEvent.response({
 			command: "getFileResponse",
 			error: true,

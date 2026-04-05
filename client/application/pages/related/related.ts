@@ -17,9 +17,7 @@ export default class RelatedPage extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const nodeId = window.location.pathname.split('/')[1];
-
-		const response = await Model.getPipe("api.related.fetchRelated").run(nodeId);
+		const response = await Model.getPipe("api.related.fetchRelated").run(Model.getPipe("settings.currentNode").data);
 
 		spinner.emit("close");
 
@@ -49,7 +47,7 @@ export default class RelatedPage extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const nodeId = window.location.pathname.split('/')[1];
+		const nodeId = Model.getPipe("settings.currentNode").data;
 
 		const response = await Model.getPipe("api.related.goTo").run({
 			from: nodeId,
@@ -66,8 +64,10 @@ export default class RelatedPage extends Component {
 			Model.getPipe("modals.showDialog").run(notification);
 		} else {
 			if (response.selfId) {
+				Model.getPipe("settings.currentNode").data = "self";
 				Model.getPipe("router").run(`self/title`);
 			} else {
+				Model.getPipe("settings.currentNode").data = uuid;
 				Model.getPipe("router").run(`${uuid}/title`);
 			}
 		}

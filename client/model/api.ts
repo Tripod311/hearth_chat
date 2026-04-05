@@ -21,6 +21,7 @@ import AllTopicsRequest from "./topic/allTopics.js"
 import WSRequest from "./topic/wsRequest.js"
 import UploadFilesRequest from "./topic/uploadFiles.js"
 
+import NodeTitleRequest from "./nodeInfo/fetchNodeTitle.js"
 import TitlePageRequest from "./nodeInfo/titlePage.js"
 import GetNodeSettingsRequest from "./nodeInfo/getNodeSettings.js"
 import SetNodeSettingsRequest from "./nodeInfo/setNodeSettings.js"
@@ -36,6 +37,11 @@ import GoToRequest from "./related/goTo.js"
 
 import AddPushSubscriptionRequest from "./push/addPushSubscription.js"
 import DeletePushSubscriptionRequest from "./push/deletePushSubscription.js"
+
+import GetActorsRequest from "./actor/getActors.js"
+import GetActorInfoRequest from "./actor/getActorInfo.js"
+import BanRequest from "./actor/ban.js"
+import UnbanRequest from "./actor/unban.js"
 
 export default function addAPI (model: Pump) {
 	const root = new Pipe();
@@ -68,6 +74,7 @@ export default function addAPI (model: Pump) {
 
 	const nodeInfoRoot = new Pipe();
 	root.addPipe("nodeInfo", nodeInfoRoot);
+	nodeInfoRoot.addPipe("fetchNodeTitle", NodeTitleRequest);
 	nodeInfoRoot.addPipe("titlePage", TitlePageRequest);
 	nodeInfoRoot.addPipe("getNodeSettings", GetNodeSettingsRequest);
 	nodeInfoRoot.addPipe("setNodeSettings", SetNodeSettingsRequest);
@@ -87,4 +94,11 @@ export default function addAPI (model: Pump) {
 	root.addPipe("push", pushRoot);
 	pushRoot.addPipe("add", AddPushSubscriptionRequest);
 	pushRoot.addPipe("delete", DeletePushSubscriptionRequest);
+
+	const actorRoot = new Pipe();
+	root.addPipe("actor", actorRoot);
+	actorRoot.addPipe("getActors", GetActorsRequest);
+	actorRoot.addPipe("getActorInfo", GetActorInfoRequest);
+	actorRoot.addPipe("ban", BanRequest);
+	actorRoot.addPipe("unban", UnbanRequest);
 }

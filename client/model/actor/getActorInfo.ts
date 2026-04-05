@@ -1,20 +1,19 @@
 import { AsyncFunctionPipe } from "@tripod311/pump"
 
 interface Input {
-	filter: string;
-	offset: number;
-	limit: number;
+	nodeId: string;
+	id: number;
 }
 
 interface Output {
 	error: boolean;
 	details?: string;
-	data: { login: string; is_admin: number; is_bot: number; last_login: number; }[];
+	data: { node_id: string; node_name: string; node_user_id: number; display_name: string; is_banned: boolean; };
 }
 
-const GetUsersRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
+const GetActorInfoRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/getUsers", {
+		const response = await fetch(window.location.origin + "/api/getActorInfo", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -38,4 +37,4 @@ const GetUsersRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input
 	}
 });
 
-export default GetUsersRequest
+export default GetActorInfoRequest

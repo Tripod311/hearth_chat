@@ -78,7 +78,7 @@ export default class TitlePage extends Component {
 		const spinner = Model.getPipe("modals.createSpinner").run();
 		Model.getPipe("modals.showDialog").run(spinner);
 
-		const response = await Model.getPipe("api.nodeInfo.titlePage").run();
+		const response = await Model.getPipe("api.nodeInfo.titlePage").run(Model.getPipe("settings.currentNode").data);
 
 		spinner.emit("close");
 

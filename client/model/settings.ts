@@ -11,4 +11,13 @@ export default function addSettings (model: Pump) {
 	settingsRoot.addPipe("username", username);
 	const vapid_key = new StoragePipe<string>();
 	settingsRoot.addPipe("vapid_key", vapid_key);
+	const currentNode = new StoragePipe<string>();
+	settingsRoot.addPipe("currentNode", currentNode);
+
+	const sp = window.location.pathname.split("/");
+	if (sp.length > 2) {
+		currentNode.data = sp[1];
+	} else {
+		currentNode.data = "self";
+	}
 }

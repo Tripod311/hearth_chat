@@ -16,6 +16,7 @@ export default class TopicManager extends Node {
 		this.setListener("proxyConnection", this.handleProxyConnection.bind(this));
 
 		this.setListener("topicDeleted", this.onTopicDeleted.bind(this));
+		this.setListener("kickActor", this.onKickActor.bind(this));
 	}
 
 	async handleWSConnection (event: Event) {
@@ -28,6 +29,8 @@ export default class TopicManager extends Node {
 		const topic_id: number = event.data.data.topic_id;
 
 		try {
+			if (event.data.data.is_banned) throw new Error("You are banned on this node");
+
 			if (!this.topics[topic_id]) {
 				if (!this.pendingIds[topic_id]) {
 					this.pendingIds[topic_id] = this.fetchTopic(topic_id);
@@ -57,6 +60,10 @@ export default class TopicManager extends Node {
 		const node_id = event.data.data.node_id;
 
 		try {
+			const actor_info = await this.fetchActor(node_id, proxy.node_user_id);
+
+			if (actor_info.is_banned) throw new Error("You are banned on this node");
+
 			if (!this.topics[topic_id]) {
 				if (!this.pendingIds[topic_id]) {
 					this.pendingIds[topic_id] = this.fetchTopic(topic_id);
@@ -120,6 +127,24 @@ export default class TopicManager extends Node {
 		});
 	}
 
+	fetchActor (node_id: string, node_user_id: number): Promise<{ is_banned: boolean; }> {
+		return new Promise((resolve, reject) => {
+			const dbAddr = this.address!.parent.data;
+			dbAddr.push("db");
+
+			this.chain(dbAddr, {
+				command: "findRemoteActor",
+				data: { node_id, node_user_id }
+			}, (response: Event) => {
+				if (response.data.error) {
+					reject(response.data.details);
+				} else {
+					resolve(response.data.data);
+				}
+			})
+		});
+	}
+
 	onTopicDeleted (event: Event) {
 		const id = event.data.data.id.toString();
 
@@ -127,6 +152,14 @@ export default class TopicManager extends Node {
 
 		if (this.topics[id]) {
 			this.delChild(id);
+		}
+	}
+
+	onKickActor (event: Event) {
+		const id = event.data.data.id;
+
+		for (const topic of Object.values(this.topics)) {
+			topic.kickActor(id);
 		}
 	}
 }

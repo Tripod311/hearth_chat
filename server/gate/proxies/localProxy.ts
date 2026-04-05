@@ -32,6 +32,8 @@ export default class LocalProxy extends Proxy {
 
 	kill () {
 		this.socket.terminate();
+
+		this.onDestroyed();
 	}
 
 	forward (data: Buffer) {

@@ -24,6 +24,7 @@ import fetchMessages from "./db/topics/fetchMessages.js"
 import authTopic from "./db/topics/authTopic.js"
 
 import fetchTitle from "./db/node/fetchTitle.js"
+import fetchNodeTitle from "./db/node/fetchNodeTitle.js"
 import getNodeSettings from "./db/node/getNodeSettings.js"
 import setNodeSettings from "./db/node/setNodeSettings.js"
 
@@ -41,7 +42,12 @@ import forgetRelated from "./db/related/forgetRelated.js"
 import addRelated from "./db/related/addRelated.js"
 
 import findActor from "./db/actor/findActor.js"
+import findRemoteActor from "./db/actor/findRemoteActor.js"
 import updateActor from "./db/actor/updateActor.js"
+import banActor from "./db/actor/banActor.js"
+import unbanActor from "./db/actor/unbanActor.js"
+import getActorInfo from "./db/actor/getActorInfo.js"
+import getActors from "./db/actor/getActors.js"
 
 import addPushSubscription from "./db/push/add.js"
 import deletePushSubscription from "./db/push/delete.js"
@@ -258,6 +264,7 @@ export default class DB extends Node {
 		this.setListener("authTopic", authTopic.bind(this, this.db));
 
 		this.setListener("fetchTitle", fetchTitle.bind(this, this.db));
+		this.setListener("fetchNodeTitle", fetchNodeTitle.bind(this, this.db));
 		this.setListener("getNodeSettings", getNodeSettings.bind(this, this.db));
 		this.setListener("setNodeSettings", setNodeSettings.bind(this, this.db));
 
@@ -275,7 +282,12 @@ export default class DB extends Node {
 		this.setListener("addRelated", addRelated.bind(this, this.db));
 
 		this.setListener("findActor", findActor.bind(this, this.db));
+		this.setListener("findRemoteActor", findRemoteActor.bind(this, this.db));
 		this.setListener("updateActor", updateActor.bind(this, this.db));
+		this.setListener("banActor", banActor.bind(this, this.db));
+		this.setListener("unbanActor", unbanActor.bind(this, this.db));
+		this.setListener("getActorInfo", getActorInfo.bind(this, this.db));
+		this.setListener("getActors", getActors.bind(this, this.db));
 
 		this.setListener("pushMessage", pushMessage.bind(this, this.db));
 		this.setListener("fetchMessages", fetchMessages.bind(this, this.db));

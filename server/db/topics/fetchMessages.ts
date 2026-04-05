@@ -8,6 +8,7 @@ interface MessageRow {
 	actor_id: number;
 	display_name: string;
 	created_at: number;
+	is_guest: boolean;
 }
 
 interface CombinedMessageRow {
@@ -17,6 +18,7 @@ interface CombinedMessageRow {
 	actor_id: number;
 	display_name: string;
 	created_at: number;
+	is_guest: boolean;
 }
 
 export default function fetchMessages (db: Database.Database, event: Event) {
@@ -34,6 +36,7 @@ export default function fetchMessages (db: Database.Database, event: Event) {
 				messages.created_at as created_at,
 				actors.id as actor_id,
 				actors.display_name as display_name,
+				actors.node_id IS NOT NULL as is_guest,
 				attachments.file_path as file_path
 				FROM messages
 				LEFT JOIN actors ON messages.actor_id=actors.id
@@ -50,6 +53,7 @@ export default function fetchMessages (db: Database.Database, event: Event) {
 				messages.created_at as created_at,
 				actors.id as actor_id,
 				actors.display_name as display_name,
+				actors.node_id IS NOT NULL as is_guest,
 				attachments.file_path as file_path
 				FROM messages
 				LEFT JOIN actors ON messages.actor_id=actors.id
@@ -69,6 +73,7 @@ export default function fetchMessages (db: Database.Database, event: Event) {
 					actor_id: row.actor_id,
 					content: row.content,
 					display_name: row.display_name,
+					is_guest: row.is_guest,
 					created_at: row.created_at,
 					attachments: !!row.file_path ? [ row.file_path ] : []
 				}

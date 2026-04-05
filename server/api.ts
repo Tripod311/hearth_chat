@@ -32,6 +32,7 @@ import fetchTitlePage from "./api/node/fetchTitlePage.js"
 import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
 import fetchVapid from "./api/node/fetchVapid.js"
+import fetchNodeTitle from "./api/node/fetchNodeTitle.js"
 
 import nodeHandshake from "./api/related/nodeHandshake.js"
 import fetchRelated from "./api/related/fetchRelated.js"
@@ -45,6 +46,11 @@ import getFile from "./api/related/getFile.js"
 
 import addPushSubscription from "./api/push/addPushSubscription.js"
 import deletePushSubscription from "./api/push/deletePushSubscription.js"
+
+import getActors from "./api/actor/getActors.js"
+import getActorInfo from "./api/actor/getActorInfo.js"
+import banActor from "./api/actor/ban.js"
+import unbanActor from "./api/actor/unban.js"
 
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
@@ -250,6 +256,12 @@ export default class API extends Node {
 			fetchVapid.bind(this)
 		]));
 
+		this.instance.post("/api/nodeTitle", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			fetchNodeTitle.bind(this)
+		]));
+
 		// ws setup
 
 		this.instance.post("/api/requestWS", this.baseChain.concat([
@@ -317,6 +329,32 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			deletePushSubscription.bind(this)
+		]));
+
+		// actor actions
+
+		this.instance.post("/api/getActors", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			getActors.bind(this)
+		]));
+
+		this.instance.post("/api/getActorInfo", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			getActorInfo.bind(this)
+		]));
+
+		this.instance.post("/api/banActor", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			banActor.bind(this)
+		]));
+
+		this.instance.post("/api/unbanActor", this.baseChain.concat([
+			verify.bind(this),
+			JsonBody,
+			unbanActor.bind(this)
 		]));
 	}
 
@@ -449,7 +487,8 @@ export default class API extends Node {
 								is_bot: this.wsConnections[reqId].is_bot,
 								id: dbResponse.data.data.id,
 								node_user_id: this.wsConnections[reqId].user_id,
-								display_name: dbResponse.data.data.display_name
+								display_name: dbResponse.data.data.display_name,
+								is_banned: dbResponse.data.data.is_banned
 							}
 						});
 						delete this.wsConnections[reqId];

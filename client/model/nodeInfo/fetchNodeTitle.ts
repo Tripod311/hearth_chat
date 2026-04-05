@@ -6,10 +6,16 @@ interface Output {
 	data?: string;
 }
 
-const FetchVapidRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
+const NodeTitleRequest = new AsyncFunctionPipe<string, Output>(async (uuid: string) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/vapid", {
-			method: "GET"
+		const response = await fetch(window.location.origin + "/api/nodeTitle", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				uuid
+			})
 		});
 
 		const data = await response.json();
@@ -27,4 +33,5 @@ const FetchVapidRequest = new AsyncFunctionPipe<undefined, Output>(async () => {
 		}
 	}
 });
-export default FetchVapidRequest
+
+export default NodeTitleRequest

@@ -59,6 +59,7 @@ export default class Gate extends Node {
 		this.setListener("fetchRelated", this.fetchRelated.bind(this));
 		this.setListener("pushFiles", this.pushFiles.bind(this));
 		this.setListener("getFile", this.getFile.bind(this));
+		this.setListener("getActorInfo", this.getActorInfo.bind(this));
 	}
 
 	detach () {
@@ -202,6 +203,23 @@ export default class Gate extends Node {
 		}
 	}
 
+	getActorInfo (event: Event) {
+		const uuid = event.data.data.uuid;
+		const id = event.data.data.id;
+
+		const node = this.getNodeByUUID(uuid);
+
+		if (node === null) {
+			event.response({
+				command: "getActorInfoResponse",
+				error: true,
+				details: "Node not found"
+			})
+		} else {
+			node.callMethod("getActorInfo", event);
+		}
+	}
+
 	fetchTitle (event: Event) {
 		const uuid = event.data.data.uuid;
 
@@ -309,6 +327,7 @@ export default class Gate extends Node {
 				command: "checkNodeRegisteredResponse",
 				data: info
 			});
+			return;
 		} catch (err: any) {
 			if (ref_uuid === undefined) {
 				event.response({
@@ -476,6 +495,13 @@ export default class Gate extends Node {
 		this.pendingConnections[uuid] = {};
 
 		const pr = new Promise<NodeConnection>((resolve, reject) => {
+			const created = this.getNodeByUUID(uuid);
+
+			if (created !== null) {
+				resolve(created);
+				return;
+			}
+
 			const id = this.counter++;
 			const socket = Net.createConnection({ host: ip, port: port });
 			const conn = new NodeConnection(id.toString(), socket, this.selfInfo, uuid, ref_uuid, keepAlive);

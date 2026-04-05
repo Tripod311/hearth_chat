@@ -1,0 +1,26 @@
+import { Context, SetCookie } from "@tripod311/currents"
+import { Node, Event } from "@tripod311/dispatch"
+
+export default function getActors (this: Node, ctx: Context): Promise<void> {
+	return new Promise((resolve, reject) => {
+		if (!ctx.locals.userInfo.is_admin) {
+			ctx.status(403).json({ error: true, details: "Access forbidden" });
+			resolve();
+		} else {
+			const dbAddress = this.address!.parent.data;
+			dbAddress.push("db");
+
+			this.chain(dbAddress, {
+				command: "getActors",
+				data: ctx.body
+			}, (response: Event) => {
+				if (response.data.error) {
+					ctx.status(500).json({ error: true, details: response.data.details });
+				} else {
+					ctx.status(200).json({ error: false, data: response.data.data });
+				}
+				resolve();
+			});
+		}
+	});
+}

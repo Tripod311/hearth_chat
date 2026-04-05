@@ -19,6 +19,7 @@ TemplateCache.registerDrop("attachment", Attachment);
 
 import VoiceChat from "./voiceChat/voiceChat.js"
 import VoiceControls from "./voiceControls.js"
+import ActorInfoDialog from "./actorInfoDialog/component.js"
 
 interface TopicInfo {
 	selfId: number;
@@ -175,12 +176,16 @@ export default class ChatPage extends Component {
 				is_mine: true
 			});
 
+			comp.on("showActorInfo", this.showActorInfo.bind(this));
+
 			this.slots.messages.push(comp);
 		} else {
 			const comp = new ChatMessage({
 				...message,
 				is_mine: false
 			});
+
+			comp.on("showActorInfo", this.showActorInfo.bind(this));
 
 			this.slots.messages.push(comp);
 		}
@@ -374,12 +379,16 @@ export default class ChatPage extends Component {
 						is_mine: true
 					});
 
+					comp.on("showActorInfo", this.showActorInfo.bind(this));
+
 					this.slots.messages.push(comp);
 				} else {
 					const comp = new ChatMessage({
 						...message,
 						is_mine: false
 					});
+
+					comp.on("showActorInfo", this.showActorInfo.bind(this));
 
 					this.slots.messages.push(comp);
 				}
@@ -669,5 +678,10 @@ export default class ChatPage extends Component {
 		if (this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(JSON.stringify(msg));
 		}
+	}
+
+	showActorInfo (actorId: number) {
+		const dlg = new ActorInfoDialog({ id: actorId });
+		Model.getPipe("modals.showDialog").run(dlg);
 	}
 }

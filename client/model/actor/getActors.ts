@@ -9,12 +9,12 @@ interface Input {
 interface Output {
 	error: boolean;
 	details?: string;
-	data: { login: string; is_admin: number; is_bot: number; last_login: number; }[];
+	data: { node_id: string; node_name: string; node_user_id: number; display_name: string; is_banned: boolean; }[];
 }
 
-const GetUsersRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
+const GetActorsRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) => {
 	try {
-		const response = await fetch(window.location.origin + "/api/getUsers", {
+		const response = await fetch(window.location.origin + "/api/getActors", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json"
@@ -38,4 +38,4 @@ const GetUsersRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input
 	}
 });
 
-export default GetUsersRequest
+export default GetActorsRequest

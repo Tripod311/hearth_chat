@@ -24,6 +24,12 @@ export default class ChatMessage extends Component {
 		const date = new Date(this.state.getProp("created_at") * 1000);
 		this.state.setProp("datetime", ChatMessage.timeFormat.format(date) + " " + ChatMessage.dateFormat.format(date));
 
+		if (this.state.getProp("is_guest")) {
+			this.refs.is_guest.style.display = "block";
+		}
+
+		this.refs.header.onclick = this.emit.bind(this, "showActorInfo", this.state.getProp("actor_id"));
+
 		if (this.state.getProp("is_mine")) {
 			this.refs.container.style["align-self"] = "flex-end";
 		} else {

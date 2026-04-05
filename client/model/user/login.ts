@@ -36,5 +36,6 @@ const LoginRequest = new AsyncFunctionPipe<Input, Output>(async (input: Input) =
 		}
 	}
 });
+LoginRequest.wipeInput = true;
 
 export default LoginRequest

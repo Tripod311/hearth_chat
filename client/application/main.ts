@@ -35,12 +35,7 @@ export default class Application extends Component {
 	mounted () {
 		super.mounted();
 
-		const sp = window.location.pathname.split('/');
-		if (sp.length > 2) {
-			this.nodeId = sp[1];
-		} else {
-			this.nodeId = "self";
-		}
+		this.nodeId = Model.getPipe("settings.currentNode").data;
 
 		this.slots.modals.push(this.modals);
 
@@ -64,6 +59,7 @@ export default class Application extends Component {
 
 		this.attachModals();
 
+		this.fetchVapid();
 		this.verify();
 	}
 
@@ -98,19 +94,20 @@ export default class Application extends Component {
 			Model.getPipe("settings.username").data = result.userInfo.login;
 			Model.getPipe("settings.isAdmin").data = result.userInfo.is_admin;
 
-			this.state.update({
-				"headerText": `Hello, ${ Model.getPipe("settings.username").data }`
-			});
-
-			const vapidResult = await Model.getPipe("api.nodeInfo.fetchVapid").run();
-
-			if (vapidResult.error) {
-				console.error(`Can't fetch VAPID key: ${vapidResult.details}`);
-			} else {
-				Model.getPipe("settings.vapid_key").data = vapidResult.data;
-			}
+			const title = await Model.getPipe("api.nodeInfo.fetchNodeTitle").run(Model.getPipe("settings.currentNode").data);
+			this.refs.headerText.innerText = title.data;
 
 			this.setPage(this.state.getProp("page"), this.state.getProp("id"));
+		}
+	}
+
+	async fetchVapid () {
+		const vapidResult = await Model.getPipe("api.nodeInfo.fetchVapid").run();
+
+		if (vapidResult.error) {
+			console.error(`Can't fetch VAPID key: ${vapidResult.details}`);
+		} else {
+			Model.getPipe("settings.vapid_key").data = vapidResult.data;
 		}
 	}
 
@@ -129,14 +126,7 @@ export default class Application extends Component {
 	}
 
 	setPage (type="title", id="") {
-		let nodeId: string;
-
-		const sp = window.location.pathname.split('/');
-		if (sp.length > 2) {
-			nodeId = sp[1];
-		} else {
-			nodeId = "self";
-		}
+		const nodeId = Model.getPipe("settings.currentNode").data;
 
 		if (this.currentPage !== type || nodeId !== this.nodeId) {
 			this.nodeId = nodeId;

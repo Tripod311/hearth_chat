@@ -13,6 +13,7 @@ import setupFetchRelated from "./protocol/fetchRelated.js"
 import setupProxy from "./protocol/proxy.js"
 import setupPushFiles from "./protocol/pushFiles.js"
 import setupGetFile from "./protocol/getFile.js"
+import setupGetActorInfo from "./protocol/getActorInfo.js"
 
 const NODE_KEEPALIVE = 1000 * 60 * 10;
 
@@ -76,6 +77,7 @@ export default class NodeConnection extends Node {
 		setupProxy(this);
 		setupPushFiles(this);
 		setupGetFile(this);
+		setupGetActorInfo(this);
 
 		if (this.is_outcoming_connection) {
 			this.refresh();
@@ -139,8 +141,6 @@ export default class NodeConnection extends Node {
 	}
 
 	routeMessage (event: Event) {
-		Log.success("IN: " + JSON.stringify(event.data), 0);
-
 		this.callRoute(event.data.command, event.data);
 	}
 
@@ -156,7 +156,6 @@ export default class NodeConnection extends Node {
 	}
 
 	sendEvent (data: EventData) {
-		Log.info("OUT: " + JSON.stringify(data), 0);
 		const ev = new Event(
 			this.dispatcher!,
 			new Address([]),

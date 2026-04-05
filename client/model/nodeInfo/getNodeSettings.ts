@@ -3,7 +3,7 @@ import { AsyncFunctionPipe } from "@tripod311/pump"
 interface Output {
 	error: boolean;
 	details?: string;
-	data: any;
+	data?: any;
 }
 
 const GetNodeSettingsRequest = new AsyncFunctionPipe<undefined, Output>(async () => {

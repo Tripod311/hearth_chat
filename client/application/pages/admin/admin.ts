@@ -5,6 +5,7 @@ import NodeTab from "./nodeTab/component.js"
 import UsersTab from "./usersTab/component.js"
 import TopicsTab from "./topicsTab/component.js"
 import RelatedTab from "./relatedTab/component.js"
+import ActorsTab from "./actorsTab/component.js"
 
 export default class AdminPage extends Component {
 	protected static componentName = "AdminPage";
@@ -43,6 +44,7 @@ export default class AdminPage extends Component {
 				this.slots.tab.push(new UsersTab({}));
 				break;
 			case "actors":
+				this.slots.tab.push(new ActorsTab({}));
 				break;
 			case "topics":
 				this.slots.tab.push(new TopicsTab({}));

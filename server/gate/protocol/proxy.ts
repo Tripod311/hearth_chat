@@ -155,11 +155,31 @@ function destroyProxy (this: NodeConnection, id: number) {
 	const proxy = proxies.get(id);
 
 	if (proxy) {
-		proxy.kill();
 		proxies.delete(id);
+		proxy.kill();
+
+		this.callMethod("sendEvent", {
+			command: "proxyDown",
+			data: {
+				node_user_id: proxy.node_user_id
+			}
+		});
 	}
 
 	this.callMethod("refresh");
+}
+
+function proxyDown (this: NodeConnection, data: EventData) {
+	const proxies = this.getVariable("proxies");
+
+	for (const proxy of proxies.values()) {
+		if (proxy.node_user_id === data.data.node_user_id) {
+			proxies.delete(proxy.id);
+			proxy.kill();
+			this.callMethod("refresh");
+			return;
+		}
+	}
 }
 
 function killProxies (this: NodeConnection) {
@@ -173,11 +193,15 @@ function killProxies (this: NodeConnection) {
 export default function setup(node: NodeConnection) {
 	node.setVariable("proxyCounter", 0);
 	node.setVariable("proxies", new Map());
+
 	node.registerMethod("createLocalProxy", createLocalProxy);
 	node.registerMethod("destroyProxy", destroyProxy);
 	node.registerMethod("sendProxyEvent", sendProxyEvent);
+
 	node.registerRoute("createRemoteProxy", createRemoteProxy);
 	node.registerRoute("createProxyResponse", createProxyResponse);
+	node.registerRoute("proxyDown", proxyDown);
 	node.registerRoute("proxyEvent", receiveProxyEvent);
+
 	node.registerFinisher(killProxies);
 }

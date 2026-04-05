@@ -13,6 +13,7 @@ export default class Navigation extends Component {
 
 		this.refs.account.onclick = this.goToAccount.bind(this);
 		this.refs.title.onclick = this.goToTitle.bind(this);
+		this.refs.home.onclick = this.goHome.bind(this);
 		this.refs.topics.onclick = this.goToTopics.bind(this);
 		this.refs.related.onclick = this.goToRelated.bind(this);
 		this.refs.admin.onclick = this.goToAdmin.bind(this);
@@ -40,43 +41,30 @@ export default class Navigation extends Component {
 		Model.getPipe("router").run('account');
 	}
 
+	goHome () {
+		this.emit("hide");
+
+		Model.getPipe("settings.currentNode").data = "self";
+
+		Model.getPipe("router").run(`self/title`);
+	}
+
 	goToTitle () {
 		this.emit("hide");
 
-		const sp = window.location.pathname.split("/");
-		if (sp.length > 2) {
-			const nodeId = sp[1];
-
-			Model.getPipe("router").run(`${nodeId}/title`);
-		} else {
-			Model.getPipe("router").run(`self/title`);
-		}
+		Model.getPipe("router").run(`${Model.getPipe("settings.currentNode").data}/title`);
 	}
 
 	goToTopics () {
 		this.emit("hide");
 
-		const sp = window.location.pathname.split("/");
-		if (sp.length > 2) {
-			const nodeId = sp[1];
-
-			Model.getPipe("router").run(`${nodeId}/topics`);
-		} else {
-			Model.getPipe("router").run(`self/topics`);
-		}
+		Model.getPipe("router").run(`${Model.getPipe("settings.currentNode").data}/topics`);
 	}
 
 	goToRelated () {
 		this.emit("hide");
 
-		const sp = window.location.pathname.split("/");
-		if (sp.length > 2) {
-			const nodeId = sp[1];
-
-			Model.getPipe("router").run(`${nodeId}/related`);
-		} else {
-			Model.getPipe("router").run(`self/related`);
-		}
+		Model.getPipe("router").run(`${Model.getPipe("settings.currentNode").data}/related`);
 	}
 
 	goToAdmin () {
