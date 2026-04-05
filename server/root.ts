@@ -35,6 +35,7 @@ export default class Root extends Node {
 		this.invites = new InviteManager();
 		this.topicManager = new TopicManager();
 		this.uploadsTracker = new UploadsTracker();
+		console.log("Self id: " + this.db.uuid);
 
 		MediasoupController.announced_ip = this.db.mediasoupParams.announced_ip;
 		MediasoupController.ice_candidates = this.db.mediasoupParams.ice_candidates;

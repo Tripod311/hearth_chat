@@ -71,6 +71,8 @@ export default class TopicManager extends Node {
 				delete this.pendingIds[topic_id];
 			}
 
+			if (!this.topics[topic_id].guest_access) throw new Error("This topic can't be accessed by guests");
+
 			const actor = new ProxyActor(actor_id, node_id, proxy);
 			this.topics[topic_id]!.connectActor(actor);
 

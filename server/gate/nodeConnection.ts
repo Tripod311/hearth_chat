@@ -1,13 +1,18 @@
 import Net from "net"
-import { WebSocket } from "ws"
 import { Node, Dispatcher, Address, Event, Log, StreamProcessor, SerializeEvent } from "@tripod311/dispatch"
 import type { EventData } from "@tripod311/dispatch"
 import type { NodeInfo } from "./gate.js"
 
-import Proxy from "./proxy.js"
-import LocalProxy from "./localProxy.js"
-import RemoteProxy from "./remoteProxy.js"
-import FileHandles from "./fileHandles.js"
+import setupHeartbeat from "./protocol/heartbeat.js"
+import setupPing from "./protocol/ping.js"
+import setupNodeInfo from "./protocol/nodeInfo.js"
+import setupAsk from "./protocol/ask.js"
+import setupFetchTitle from "./protocol/fetchTitle.js"
+import setupFetchTopics from "./protocol/fetchTopics.js"
+import setupFetchRelated from "./protocol/fetchRelated.js"
+import setupProxy from "./protocol/proxy.js"
+import setupPushFiles from "./protocol/pushFiles.js"
+import setupGetFile from "./protocol/getFile.js"
 
 const NODE_KEEPALIVE = 1000 * 60 * 10;
 
@@ -16,17 +21,16 @@ export default class NodeConnection extends Node {
 	public selfInfo: NodeInfo;
 	public uuid?: string;
 	public ref_uuid?: string;
-	private keepAlive: boolean = false;
+	public is_outcoming_connection: boolean = false;
+	public keepAlive: boolean = false;
+
 	private socket: Net.Socket;
 	private processor!: StreamProcessor;
 
-	private waitingTitle: Event[] = [];
-	private waitingTopics: Event[] = [];
-	private waitingRelated: Event[] = [];
-	private fileHandles!: FileHandles;
-
-	private counter: number = 0;
-	private proxies: Record<number, Proxy> = {};
+	private variables: Map<string, any> = new Map();
+	private methods: Map<string, Function> = new Map();
+	private routes: Map<string, Function> = new Map();
+	private finishers: Set<Function> = new Set();
 
 	private timeout?: ReturnType<typeof setTimeout>;
 
@@ -38,9 +42,12 @@ export default class NodeConnection extends Node {
 
 		this.uuid = uuid;
 		this.ref_uuid = ref_uuid;
-		this.keepAlive = keepAlive
+		this.keepAlive = keepAlive;
+
+		this.is_outcoming_connection = !!this.uuid;
 
 		this.socket = socket;
+		this.socket.setKeepAlive(true, 15000);
 
 		this.socket.on("end", this.socketDisconnected.bind(this));
 		this.socket.on("close", this.socketDisconnected.bind(this));
@@ -51,48 +58,37 @@ export default class NodeConnection extends Node {
 		super.attach(dispatcher, address);
 
 		this.processor = new StreamProcessor(dispatcher, this.socket);
-		this.processor.on("message", this.processMessage.bind(this));
+		this.processor.on("message", this.routeMessage.bind(this));
 		this.processor.on("error", this.socketDisconnected.bind(this));
 
-		this.fileHandles = new FileHandles();
-		this.fileHandles.onEvent = this.sendEvent.bind(this);
-		this.addChild("fileHandles", this.fileHandles);
+		this.registerMethod("sendEvent", this.sendEvent.bind(this));
+		this.registerMethod("forceClose",this.socketDisconnected.bind(this));
+		this.registerMethod("refresh", this.refresh.bind(this));
+		this.registerMethod("suspend", this.refresh.bind(this));
 
-		if (this.uuid) {
-			this.sendHeartbeat();
+		setupHeartbeat(this);
+		setupPing(this);
+		setupNodeInfo(this);
+		setupAsk(this);
+		setupFetchTitle(this);
+		setupFetchTopics(this);
+		setupFetchRelated(this);
+		setupProxy(this);
+		setupPushFiles(this);
+		setupGetFile(this);
+
+		if (this.is_outcoming_connection) {
+			this.refresh();
+			this.callMethod("sendHeartbeat");
 		}
 	}
 
 	detach () {
-		Log.info(`Node ${this.uuid} disconnected`, 0);
 		clearTimeout(this.timeout);
+		Log.info(`Node ${this.uuid} disconnected`, 0);
 
-		for (const ev of this.waitingTitle) {
-			ev.response({
-				command: "fetchTitleResponse",
-				error: true,
-				details: "Node disconnected"
-			})
-		}
-
-		for (const ev of this.waitingTopics) {
-			ev.response({
-				command: "fetchTopicsResponse",
-				error: true,
-				details: "Node disconnected"
-			})
-		}
-
-		for (const ev of this.waitingRelated) {
-			ev.response({
-				command: "fetchRelatedResponse",
-				error: true,
-				details: "Node disconnected"
-			})
-		}
-
-		for (const id in this.proxies) {
-			this.proxies[id].kill();
+		for (const finisher of this.finishers) {
+			finisher.call(this);
 		}
 
 		this.socket.destroy();
@@ -100,69 +96,52 @@ export default class NodeConnection extends Node {
 		super.detach();
 	}
 
-	get normalizedIP (): string {
-		const ip = this.socket.remoteAddress as string;
-
-		return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+	setVariable (name: string, obj: any) {
+		this.variables.set(name, obj);
 	}
 
-	processMessage (event: Event) {
-		switch (event.data.command) {
-			case "heartbeat":
-				this.processHeartbeat(event.data.data);
-				break;
-			case "heartbeatResponse":
-				this.processHeartbeatResponse(event.data.data);
-				break;
-			case "ask":
-				this.askRequest(event.data.data);
-				break;
-			case "askResponse":
-				this.askResponse(event.data.data);
-				break;
-			case "nodeInfoChanged":
-				this.processNodeInfoChanged(event.data.data);
-				break;
-			case "fetchTitle":
-				this.processFetchTitle();
-				break;
-			case "fetchTopics":
-				this.processFetchTopics();
-				break;
-			case "fetchRelated":
-				this.processFetchRelated();
-				break;
-			case "fetchTitleResponse":
-				this.fetchTitleResponse(event.data);
-				break;
-			case "fetchTopicsResponse":
-				this.fetchTopicsdResponse(event.data);
-				break;
-			case "fetchRelatedResponse":
-				this.fetchRelatedResponse(event.data);
-				break;
-			case "createProxy":
-				this.processCreateProxy(event.data);
-				break;
-			case "createProxyResponse":
-				this.processCreateProxyResponse(event.data);
-				break;
-			case "proxyEvent":
-				this.processProxyEvent(event.data);
-				break;
-			case "pushOneFile":
-				this.fileHandles.processPushOneFile(event.data);
-				break;
-			case "pushOneFileResponse":
-				this.fileHandles.processPushOneFileResponse(event.data);
-				break;
-			case "getFile":
-				this.fileHandles.processGetFile(event.data);
-				break;
-			case "getFileResponse":
-				this.fileHandles.processGetFileResponse(event.data);
-				break;
+	getVariable (name: string): any {
+		return this.variables.get(name);
+	}
+
+	registerMethod (name: string, fn: Function) {
+		this.methods.set(name, fn)
+	}
+
+	callMethod (name: string, data?: any) {
+		try {
+			const fn = this.methods.get(name);
+
+			if (fn) fn.call(this, data);
+			else Log.warning(`NodeConnection error: method ${name} is not registered`, 0);
+		} catch (err: any) {
+			Log.warning(`Method ${name} error: ${err.toString}`, 0);
 		}
+	}
+
+	registerRoute (name: string, fn: Function) {
+		this.routes.set(name, fn)
+	}
+
+	callRoute (name: string, data: any) {
+		try {
+			const fn = this.routes.get(name);
+
+			if (fn) fn.call(this, data);
+			else Log.warning(`NodeConnection error: route ${name} is not registered`, 0);
+		} catch (err: any) {
+			Log.warning(`Route ${name} error: ${err.toString}`, 0);
+		}
+	}
+
+	registerFinisher (fn: Function) {
+		this.finishers.add(fn);
+	}
+
+	routeMessage (event: Event) {
+		Log.success("IN: " + JSON.stringify(event.data), 0);
+
+		this.callRoute(event.data.command, event.data);
 	}
 
 	socketDisconnected () {
@@ -177,6 +156,7 @@ export default class NodeConnection extends Node {
 	}
 
 	sendEvent (data: EventData) {
+		Log.info("OUT: " + JSON.stringify(data), 0);
 		const ev = new Event(
 			this.dispatcher!,
 			new Address([]),
@@ -196,125 +176,16 @@ export default class NodeConnection extends Node {
 		}
 	}
 
-	sendHeartbeat () {
-		this.sendEvent({
-			command: "heartbeat",
-			data: { uuid: this.selfInfo.uuid, ref_uuid: this.ref_uuid, title: this.selfInfo.title, description: this.selfInfo.description }
-		});
-	}
-
-	processHeartbeat (data: { uuid: string; ref_uuid: string; title: string; description: string; }) {
-		this.chain(this.address!.parent, {
-			command: "checkNodeRegistered",
-			data: data
-		}, (response: Event) => {
-			if (response.data.error || this.normalizedIP !== response.data.data.ip) {
-				Log.info(`Node ${data.uuid} is not recognised (handshake not completed or changed IP). Redo handshake`, 0);
-				this.socketDisconnected();
-			} else {
-				this.uuid = data.uuid;
-
-				this.sendEvent({
-					command: "heartbeatResponse",
-					data: { title: this.selfInfo.title, description: this.selfInfo.description }
-				});
-
-				this.processHeartbeatResponse({ title: data.title, description: data.description });
-				this.processNodeInfoChanged({ title: data.title, description: data.description });
-			}
-		})
-	}
-
-	processHeartbeatResponse (data: { title: string; description: string }) {
-		if (this.uuid) {
-			this.send(this.address!.parent, {
-				command: "nodeOnline",
-				data: { uuid: this.uuid! }
-			});
-			this.processNodeInfoChanged(data);
-
-			Log.info(`Node ${this.uuid} connected`, 0);
-
-			if (!this.keepAlive) {
-				this.refresh();
-			}
-		} else {
-			this.socket.destroy();
-		}
-	}
-
-	ask (uuid: string) {
-		this.refresh();
-		this.sendEvent({
-			command: "ask",
-			data: { uuid }
-		});
-	}
-
-	askRequest (data: { uuid: string }) {
-		this.refresh();
-		this.chain(this.address!.parent, {
-			command: "checkNodeRegistered",
-			data: data
-		}, (response: Event) => {
-			if (response.data.error) {
-				this.sendEvent({
-					command: "askResponse",
-					data: { ok: false, uuid: data.uuid }
-				});
-			} else {
-				this.sendEvent({
-					command: "askResponse",
-					data: { ok: true, uuid: data.uuid, ip: response.data.data.ip, port: response.data.data.port }
-				})
-			}
-		})
-	}
-
-	askResponse (data: { ok: boolean; uuid: string; ip?: string; port?: string; }) {
-		this.refresh();
-		this.send(this.address!.parent, {
-			command: "askResponse",
-			data: data
-		});
-	}
-
-	sendNodeInfoChanged (data: { title: string; description: string; }) {
-		this.refresh();
-
-		this.selfInfo.title = data.title;
-		this.selfInfo.description = data.description;
-
-		this.sendEvent({
-			command: "nodeInfoChanged",
-			data: data
-		});
-	}
-
-	processNodeInfoChanged (data: { title: string; description: string; }) {
-		this.refresh();
-		if (this.uuid) {
-			const dbAddress = this.address!.parent.parent.data;
-			dbAddress.push("db");
-
-			this.send(dbAddress, {
-				command: "relatedNodeInfoUpdate",
-				data: {
-					uuid: this.uuid,
-					title: data.title,
-					description: data.description
-				}
-			});
-		}
-	}
-
 	timeoutShutdown () {
 		this.socket.destroy();
 	}
 
 	refresh () {
-		if (!this.keepAlive && Object.keys(this.proxies).length === 0) {
-			clearTimeout(this.timeout);
+		clearTimeout(this.timeout);
+		
+		const proxies = this.getVariable("proxies");
+
+		if (!this.keepAlive && proxies.size === 0) {
 			this.timeout = setTimeout(this.timeoutShutdown.bind(this), NODE_KEEPALIVE);
 		}
 	}
@@ -323,243 +194,9 @@ export default class NodeConnection extends Node {
 		clearTimeout(this.timeout);
 	}
 
-	sendFetchTitle (event: Event) {
-		this.refresh();
+	get normalizedIP (): string {
+		const ip = this.socket.remoteAddress as string;
 
-		if (this.waitingTitle.length === 0) {
-			this.sendEvent({
-				command: "fetchTitle",
-				data: {}
-			});
-		}
-
-		this.waitingTitle.push(event);
-	}
-
-	sendFetchTopics (event: Event) {
-		this.refresh();
-
-		if (this.waitingTopics.length === 0) {
-			this.sendEvent({
-				command: "fetchTopics",
-				data: {}
-			});
-		}
-
-		this.waitingTopics.push(event);
-	}
-
-	sendFetchRelated (event: Event) {
-		this.refresh();
-
-		if (this.waitingRelated.length === 0) {
-			this.sendEvent({
-				command: "fetchRelated",
-				data: {}
-			});
-		}
-
-		this.waitingRelated.push(event);
-	}
-
-	processFetchTitle () {
-		this.refresh();
-
-		const dbAddress = this.address!.parent.parent.data;
-		dbAddress.push("db");
-
-		this.chain(dbAddress, {
-			command: "fetchTitle",
-			data: {}
-		}, (response: Event) => {
-			this.sendEvent({
-				command: "fetchTitleResponse",
-				error: response.data.error,
-				data: response.data.data
-			})
-		});
-	}
-
-	processFetchTopics () {
-		this.refresh();
-
-		const dbAddress = this.address!.parent.parent.data;
-		dbAddress.push("db");
-
-		this.chain(dbAddress, {
-			command: "getAllTopics",
-			data: {}
-		}, (response: Event) => {
-			this.sendEvent({
-				command: "fetchTopicsResponse",
-				error: response.data.error,
-				data: response.data.data
-			})
-		});
-	}
-
-	processFetchRelated () {
-		this.refresh();
-
-		const dbAddress = this.address!.parent.parent.data;
-		dbAddress.push("db");
-
-		this.chain(dbAddress, {
-			command: "fetchDirectNodes",
-			data: {}
-		}, (response: Event) => {
-			this.sendEvent({
-				command: "fetchRelatedResponse",
-				error: response.data.error,
-				data: response.data.data
-			})
-		});
-	}
-
-	fetchTitleResponse (data: EventData) {
-		this.refresh();
-
-		for (const ev of this.waitingTitle) {
-			ev.response(data);
-		}
-
-		this.waitingTitle.length = 0;
-	}
-
-	fetchTopicsdResponse (data: EventData) {
-		this.refresh();
-
-		for (const ev of this.waitingTopics) {
-			ev.response(data);
-		}
-
-		this.waitingTopics.length = 0;
-	}
-
-	fetchRelatedResponse (data: EventData) {
-		this.refresh();
-
-		for (const ev of this.waitingRelated) {
-			ev.response(data);
-		}
-
-		this.waitingRelated.length = 0;
-	}
-
-	createLocalProxy (socket: WebSocket, topic_id: number, node_user_id: number, display_name: string) {
-		this.suspend();
-
-		const id = this.counter++;
-
-		this.proxies[id] = new LocalProxy(socket, id, topic_id, node_user_id, display_name);
-
-		this.proxies[id].on("forward", this.sendProxyEvent.bind(this, id));
-		this.proxies[id].on("destroy", this.proxyDestroy.bind(this, id));
-
-		this.sendEvent({
-			command: "createProxy",
-			data: {
-				id: id,
-				node_user_id: this.proxies[id].node_user_id,
-				display_name: this.proxies[id].display_name,
-				topic_id: this.proxies[id].topic_id
-			}
-		});
-	}
-
-	processCreateProxy (data: EventData) {
-		this.suspend();
-
-		const dbAddr = this.address!.parent.parent.data;
-		dbAddr.push("db");
-		this.chain(dbAddr, {
-			command: "updateActor",
-			data: {
-				node_id: this.uuid!,
-				node_user_id: data.data.node_user_id,
-				display_name: data.data.display_name
-			}
-		}, (response: Event) => {
-			if (response.data.error) {
-				this.sendEvent({
-					command: "createProxyResponse",
-					data: { ok: false, id: data.data.id }
-				});
-			} else {
-				const id = this.counter++;
-
-				this.proxies[id] = new RemoteProxy(id, data.data.topic_id, data.data.node_user_id, data.data.display_name);
-
-				this.proxies[id].on("forward", this.sendProxyEvent.bind(this, id));
-				this.proxies[id].on("destroy", this.proxyDestroy.bind(this, id));
-
-				// forward proxy to topic
-				const managerAddr = this.address!.parent.parent.data;
-				managerAddr.push("topics");
-
-				this.chain(managerAddr, {
-					command: "proxyConnection",
-					data: {
-						proxy: this.proxies[id],
-						actor_id: response.data.data.id,
-						node_id: this.uuid!,
-						topic_id: this.proxies[id].topic_id,
-					}
-				}, (tResponse: Event) => {
-					if (tResponse.data.error) {
-						this.sendEvent({
-							command: "createProxyResponse",
-							data: { ok: false, id: data.data.id }
-						});
-						this.proxyDestroy(id);
-					} else {
-						this.sendEvent({
-							command: "createProxyResponse",
-							data: { ok: true, id: data.data.id }
-						});
-						this.proxies[id].ready();
-					}
-				});
-			}
-		});
-	}
-
-	processCreateProxyResponse (data: EventData) {
-		const id = data.data.id;
-
-		if (this.proxies[id]) {
-			if (!data.data.ok) {
-				this.proxyDestroy(id);
-			} else {
-				this.proxies[id].ready();
-			}
-		}
-	}
-
-	proxyDestroy (id: number) {
-		if (this.proxies[id]) {
-			this.proxies[id].kill();
-			delete this.proxies[id];
-		}
-
-		this.refresh();
-	}
-
-	sendProxyEvent (id: number, message: string) {
-		this.sendEvent({
-			command: "proxyEvent",
-			data: {
-				id: id,
-				message: message
-			}
-		});
-	}
-
-	processProxyEvent (data: EventData) {
-		const id = data.data.id;
-
-		if (this.proxies[id]) {
-			this.proxies[id].receive(data.data.message);
-		}
+		return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
 	}
 }

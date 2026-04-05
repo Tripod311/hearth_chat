@@ -2,7 +2,7 @@ import mediasoup from "mediasoup"
 import { Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 
-import RemoteProxy from "../gate/remoteProxy.js"
+import RemoteProxy from "../gate/proxies/remoteProxy.js"
 
 export default class ProxyActor extends Actor {
 	private proxySocket: RemoteProxy;

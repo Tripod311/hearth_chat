@@ -3,7 +3,7 @@ import Database from "better-sqlite3"
 
 export default function checkNodeRegistered (db: Database.Database, event: Event) {
 	try {
-		const row = db.prepare(`SELECT ip, port, title, description FROM related WHERE uuid=?`).get([ event.data.data.uuid ]);
+		const row = db.prepare(`SELECT uuid, ip, port, title, description, direct FROM related WHERE uuid=?`).get([ event.data.data.uuid ]);
 
 		if (!row) throw new Error("The node is either offline or the handshake has not been completed");
 

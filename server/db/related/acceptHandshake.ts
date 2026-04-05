@@ -28,7 +28,8 @@ export default function acceptHandshake (db: Database.Database, event: Event) {
 
 		event.response({
 			command: "acceptHandshakeResponse",
-			error: false
+			error: false,
+			data: { uuid: row.uuid }
 		});
 	} catch (err: any) {
 		event.response({

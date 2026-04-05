@@ -135,7 +135,7 @@ export default class DB extends Node {
 
 				ip TEXT,
 				port INTEGER,
-				uuid TEXT,
+				uuid TEXT UNIQUE,
 				title TEXT,
 				description TEXT,
 				message TEXT

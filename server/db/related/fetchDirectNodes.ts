@@ -3,13 +3,23 @@ import Database from "better-sqlite3"
 
 export default function fetchDirectNodes (db: Database.Database, event: Event) {
 	try {
-		const rows = db.prepare(`SELECT uuid, ip, port, title, description FROM related WHERE direct=1`).all();
+		if (event.data.data.hideIp) {
+			const rows = db.prepare(`SELECT uuid, title, description FROM related WHERE direct=1`).all();
 
-		event.response({
-			command: "fetchDirectNodesResponse",
-			error: false,
-			data: rows	
-		});
+			event.response({
+				command: "fetchDirectNodesResponse",
+				error: false,
+				data: rows	
+			});
+		} else {
+			const rows = db.prepare(`SELECT uuid, ip, port, title, description FROM related WHERE direct=1`).all();
+
+			event.response({
+				command: "fetchDirectNodesResponse",
+				error: false,
+				data: rows	
+			});
+		}
 	} catch (err: any) {
 		event.response({
 			command: "fetchDirectNodesResponse",

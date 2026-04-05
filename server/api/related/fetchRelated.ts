@@ -11,7 +11,7 @@ export default function fetchRelated (this: Node, ctx: Context): Promise<void> {
 
 			this.chain(dbAddress, {
 				command: "fetchDirectNodes",
-				data: {}
+				data: { hideIp: true }
 			}, (response: Event) => {
 				if (response.data.error) {
 					ctx.status(500).json({ error: true, details: response.data.details });

@@ -1,10 +1,10 @@
 import Net from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
-import { StreamingMultipartFile } from "@tripod311/currents"
+import type { EventData } from "@tripod311/dispatch"
 
 import NodeConnection from "./nodeConnection.js"
-import Proxy from "./proxy.js"
 
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const NODE_CONNECT_AWAIT = 1000 * 60;
 
 export interface NodeInfo {
@@ -13,27 +13,26 @@ export interface NodeInfo {
 	port: number;
 	title: string;
 	description: string;
+	direct?: number;
 }
 
 export default class Gate extends Node {
 	private selfInfo: NodeInfo;
 	private server: Net.Server;
 	private counter: number = 0;
-	private pendingChecks: Record<string, Event[]> = {};
-	private pendingConnections: Record<string, { timeout: ReturnType<typeof setTimeout>; events: Event[] }> = {};
+
+	private unassignedPromise?: Promise<string>;
+	private unassignedIds: Map<number, ReturnType<typeof setTimeout>> = new Map();
+	private unassignedResolve?: (uuid: string) => void;
+
+	private pendingAsks: Record<string, Record<string, Event[]>> = {};
+	private pendingConnections: Record<string, any> = {};
 
 	constructor (selfInfo: NodeInfo) {
 		super();
 
 		this.selfInfo = selfInfo;
 		this.server = Net.createServer(this.incomingConnection.bind(this));
-	}
-
-	incomingConnection (socket: Net.Socket) {
-		const id = (this.counter++).toString();
-		const conn = new NodeConnection(id, socket, this.selfInfo);
-
-		this.addChild(id, conn);
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -45,24 +44,26 @@ export default class Gate extends Node {
 
 		this.makeInitialConnections();
 
-		this.setListener("nodeInfoChanged", this.nodeInfoChanged.bind(this));
 		this.setListener("nodeOnline", this.nodeOnline.bind(this));
 		this.setListener("socketDisconnected", this.socketDisconnected.bind(this));
-		this.setListener("checkNodeRegistered", this.searchNode.bind(this));
+		this.setListener("wsConnection", this.wsConnection.bind(this));
+		this.setListener("closeConnection", this.closeConnection.bind(this));
+
+		this.setListener("checkNodeRegistered", this.checkNodeRegistered.bind(this));
 		this.setListener("askResponse", this.askResponse.bind(this));
+
+		this.setListener("nodeInfoChanged", this.nodeInfoChanged.bind(this));
 		this.setListener("connectNode", this.connectNode.bind(this));
 		this.setListener("fetchTitle", this.fetchTitle.bind(this));
 		this.setListener("fetchTopics", this.fetchTopics.bind(this));
 		this.setListener("fetchRelated", this.fetchRelated.bind(this));
-		this.setListener("wsConnection", this.wsConnection.bind(this));
-		this.setListener("closeConnection", this.closeConnection.bind(this));
 		this.setListener("pushFiles", this.pushFiles.bind(this));
 		this.setListener("getFile", this.getFile.bind(this));
 	}
 
 	detach () {
-		for (const id in this.pendingConnections) {
-			clearTimeout(this.pendingConnections[id].timeout);
+		for (const t of this.unassignedIds.values()) {
+			clearTimeout(t);
 		}
 
 		this.server.close();
@@ -70,14 +71,23 @@ export default class Gate extends Node {
 		super.detach();
 	}
 
-	makeInitialConnections () {
+	incomingConnection (socket: Net.Socket) {
+		const id = this.counter++;
+		const conn = new NodeConnection(id.toString(), socket, this.selfInfo);
+
+		this.addChild(id.toString(), conn);
+
+		this.addUnassigned(id);
+	}
+
+	async makeInitialConnections () {
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
 		this.chain(dbAddress, {
 			command: "fetchDirectNodes",
 			data: {}
-		}, (response: Event) => {
+		}, async (response: Event) => {
 			if (response.data.error) {
 				Log.error(response.data.details!, 0);
 				process.exit(1);
@@ -85,113 +95,70 @@ export default class Gate extends Node {
 				const nodes = response.data.data as { uuid: string; ip: string; port: number; title: string; description: string; }[];
 
 				for (const node of nodes) {
-					const socket = Net.createConnection({ host: node.ip, port: node.port });
-
-					const id = (this.counter++).toString();
-					const conn = new NodeConnection(id, socket, this.selfInfo, node.uuid, undefined, true);
-
-					this.addChild(id, conn);
+					try {
+						await this.createConnection(node.uuid, node.ip, node.port, true);
+					} catch (err: any) {
+						// do nothing
+					}
 				}
 			}
 		});
 	}
 
-	searchNode (event: Event) {
+	nodeOnline (event: Event) {
+		const id = event.data.data.id;
+		const intId = parseInt(id);
+		const uuid = event.data.data.uuid;
+
+		if (this.unassignedIds.has(intId)) {
+			this.resolveUnassigned(intId, uuid);
+		}
+
+		if (this.pendingConnections[uuid] !== undefined) {
+			this.resolvePending(uuid);
+		}
+
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
-		this.chain(dbAddress, {
-			command: "checkNodeRegistered",
-			data: event.data.data
-		}, (response: Event) => {
-			if (response.data.error) {
-				// ask referenced neighbor
-				let ref: NodeConnection | undefined = undefined;
-
-				for (const node of Object.values(this.subNodes)) {
-					if ((node as NodeConnection).uuid === event.data.data.ref_uuid) {
-						ref = node as NodeConnection;
-						break;
-					}
-				}
-
-				if (ref === undefined) {
-					event.response({
-						command: "checkNodeRegisteredResponse",
-						error: true
-					});
-				} else {
-					if (!this.pendingChecks[event.data.data.uuid]) {
-						this.pendingChecks[event.data.data.uuid] = []
-					}
-
-					this.pendingChecks[event.data.data.uuid].push(event);
-
-					ref.ask(event.data.data.uuid);
-				}
-			} else {
-				event.response({
-					command: "checkNodeRegisteredResponse",
-					data: response.data.data
-				})
-			}
+		this.send(dbAddress, {
+			command: "nodeOnline",
+			data: { uuid }
 		});
-	}
-
-	askResponse (event: Event) {
-		const uuid = event.data.data.uuid;
-
-		if (this.pendingChecks[uuid]) {
-			if (event.data.data.ok) {
-				const dbAddress = this.address!.parent.data;
-				dbAddress.push("db");
-
-				this.send(dbAddress, {
-					command: "rememberNode",
-					data: { uuid: uuid, ip: event.data.data.ip, port: event.data.data.port }
-				});
-
-				for (const ev of this.pendingChecks[uuid]) {
-					ev.response({
-						command: "checkNodeRegisteredResponse",
-						data: { ip: event.data.data.ip, port: event.data.data.port }
-					});
-				}
-			} else {
-				for (const ev of this.pendingChecks[uuid]) {
-					ev.response({
-						command: "checkNodeRegisteredResponse",
-						error: true
-					});
-				}
-			}
-		} else if (this.pendingConnections[uuid]) {
-			const dbAddress = this.address!.parent.data;
-			dbAddress.push("db");
-
-			this.send(dbAddress, {
-				command: "rememberNode",
-				data: { uuid: uuid, ip: event.data.data.ip, port: event.data.data.port }
-			});
-
-			const socket = Net.createConnection({ host: event.data.data.ip, port: event.data.data.port });
-
-			const id = (this.counter++).toString();
-			const conn = new NodeConnection(id, socket, this.selfInfo, uuid, event.data.data.ref_uuid, false);
-
-			this.addChild(id, conn);
-		}
 	}
 
 	socketDisconnected (event: Event) {
 		const id = event.data.data.id;
+		const intId = parseInt(id);
 		const child = this.getChild(id);
 
 		if (child) {
 			const uuid = (child as NodeConnection).uuid;
 
+			if (this.unassignedIds.has(intId)) {
+				this.resolveUnassigned(intId, ZERO_UUID);
+			}
+
 			if (uuid) {
-				this.nodeConnectionFailed(uuid);
+				if (this.pendingConnections[uuid] !== undefined) {
+					this.rejectPending(uuid);
+				}
+
+				if (this.pendingAsks[uuid]) {
+					for (const aId in this.pendingAsks[uuid]) {
+						const arr = this.pendingAsks[uuid][aId];
+
+						for (const ev of arr) {
+							ev.response({
+								command: "checkNodeRegisteredResponse",
+								error: true,
+								details: "nodeDisconnected"
+							})
+						}
+					}
+
+					delete this.pendingAsks[uuid];
+				}
 
 				const dbAddress = this.address!.parent.data;
 				dbAddress.push("db");
@@ -215,41 +182,15 @@ export default class Gate extends Node {
 				return;
 			}
 		}
-
-		if (this.pendingConnections[uuid]) {
-			clearTimeout(this.pendingConnections[uuid].timeout);
-			for (const ev of this.pendingConnections[uuid].events) {
-				ev.response({
-					command: "connectNodeResponse",
-					error: true,
-					details: "Node connection closed"
-				});
-			}
-			delete this.pendingConnections[uuid];
-		}
 	}
 
-	nodeOnline (event: Event) {
-		const uuid = event.data.data.uuid;
-
-		if (this.pendingConnections[uuid]) {
-			clearTimeout(this.pendingConnections[uuid].timeout);
-			for (const ev of this.pendingConnections[uuid].events) {
-				ev.response({
-					command: "connectNodeResponse",
-					error: false
-				});
+	closeConnectionById (closeId: string) {
+		for (const id in this.subNodes) {
+			if (id === closeId) {
+				this.delChild(id);
+				return;
 			}
-			delete this.pendingConnections[uuid];
 		}
-
-		const dbAddress = this.address!.parent.data;
-		dbAddress.push("db");
-
-		this.send(dbAddress, {
-			command: "nodeOnline",
-			data: { uuid }
-		});
 	}
 
 	nodeInfoChanged (event: Event) {
@@ -257,172 +198,55 @@ export default class Gate extends Node {
 		this.selfInfo.description = event.data.data.description;
 
 		for (const node of Object.values(this.subNodes)) {
-			(node as NodeConnection).sendNodeInfoChanged(event.data.data);
-		}
-	}
-
-	connectNode (event: Event) {
-		const uuid: string = event.data.data.uuid;
-		const ref_uuid: string = event.data.data.ref_uuid;
-
-		// check if there is established connection
-
-		let dstNode: NodeConnection | undefined = undefined;
-
-		for (const nodeId in this.subNodes) {
-			const node = this.subNodes[nodeId] as NodeConnection;
-			if (node.uuid === uuid){
-				dstNode = node;
-				break;
-			}
-		}
-
-		if (dstNode !== undefined) {
-			dstNode.refresh();
-			event.response({
-				command: "connectNodeResponse",
-				error: false
-			});
-			return;
-		}
-
-		// check if there's awaited node
-		if (this.pendingConnections[uuid] !== undefined) {
-			this.pendingConnections[uuid].events.push(event);
-			return;
-		}
-
-		this.pendingConnections[uuid] = {
-			timeout: setTimeout(this.nodeConnectionFailed.bind(this, uuid), NODE_CONNECT_AWAIT),		
-			events: [event]
-		};
-
-		// search for node in db
-		const dbAddress = this.address!.parent.data;
-		dbAddress.push("db");
-
-		this.chain(dbAddress, {
-			command: "checkNodeRegistered",
-			data: { uuid }
-		}, (response: Event) => {
-			if (response.data.error) {
-				// ask ref node
-				let refNode: NodeConnection | undefined = undefined;
-
-				for (const nodeId in this.subNodes) {
-					const node = this.subNodes[nodeId] as NodeConnection;
-					if (node.uuid === ref_uuid){
-						refNode = node;
-						break;
-					}
-				}
-
-				if (refNode === undefined) {
-					this.nodeConnectionFailed(uuid);
-				} else {
-					refNode.ask(uuid);
-				}
-			} else {
-				try {
-					const socket = Net.createConnection({ host: response.data.data.ip, port: response.data.data.port });
-
-					const id = (this.counter++).toString();
-					const conn = new NodeConnection(id, socket, this.selfInfo, uuid, ref_uuid, false);
-
-					this.addChild(id, conn);
-				} catch (err: any) {
-					Log.error(`ConnectNode error: ${err.toString()}`, 0);
-					this.nodeConnectionFailed(uuid);
-				}
-			}
-		});
-	}
-
-	nodeConnectionFailed (uuid: string) {
-		if (this.pendingConnections[uuid]) {
-			clearTimeout(this.pendingConnections[uuid].timeout);
-			for (const ev of this.pendingConnections[uuid].events) {
-				ev.response({
-					command: "connectNodeResponse",
-					error: true
-				})
-			}
-			delete this.pendingConnections[uuid];
+			(node as NodeConnection).callMethod("sendInfoChanged", event.data.data);
 		}
 	}
 
 	fetchTitle (event: Event) {
 		const uuid = event.data.data.uuid;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (!node) {
+		if (node === null) {
 			event.response({
 				command: "fetchTitleResponse",
 				error: true,
 				details: "Node not found"
 			})
 		} else {
-			node.sendFetchTitle(event);
+			node.callMethod("fetchTitle", event);
 		}
 	}
 
 	fetchTopics (event: Event) {
 		const uuid = event.data.data.uuid;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (!node) {
+		if (node === null) {
 			event.response({
 				command: "fetchTopicsResponse",
 				error: true,
 				details: "Node not found"
 			})
 		} else {
-			node.sendFetchTopics(event);
+			node.callMethod("fetchTopics", event);
 		}
 	}
 
 	fetchRelated (event: Event) {
 		const uuid = event.data.data.uuid;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (!node) {
+		if (node === null) {
 			event.response({
 				command: "fetchRelatedResponse",
 				error: true,
 				details: "Node not found"
 			})
 		} else {
-			node.sendFetchRelated(event);
+			node.callMethod("fetchRelated", event);
 		}
 	}
 
@@ -433,115 +257,339 @@ export default class Gate extends Node {
 		const topic_id = event.data.data.topic_id;
 		const display_name = event.data.data.display_name;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (!node) {
+		if (node === null) {
 			socket.destroy();
 		} else {
-			node.createLocalProxy(socket, topic_id, node_user_id, display_name);
+			node.callMethod("createLocalProxy", { socket, topic_id, node_user_id, display_name });
 		}
 	}
 
-	async pushFiles (event: Event) {
+	pushFiles (event: Event) {
 		const uuid = event.data.data.uuid;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (node === undefined) {
-			for (const file of event.data.data.files) {
-				await (file as StreamingMultipartFile).clear();
-			}
-
+		if (node === null) {
 			event.response({
 				command: "pushFilesResponse",
 				error: true,
 				details: "Node not found"
 			});
 		} else {
-			const handlesAddr = this.address!.data;
-			handlesAddr.push(node.id, "fileHandles");
-
-			this.chain(handlesAddr, {
-				command: "pushFiles",
-				data: event.data.data
-			}, (response: Event) => {
-				if (response.data.error) {
-					event.response({
-						command: "pushFilesResponse",
-						error: true,
-						details: response.data.details
-					});
-				} else {
-					event.response({
-						command: "pushFilesResponse",
-						error: false,
-						data: response.data.data
-					});
-				}
-			});
+			node.callMethod("pushFiles", event);
 		}
 	}
 
 	getFile (event: Event) {
 		const uuid = event.data.data.uuid;
 
-		let node: NodeConnection | undefined = undefined;
+		const node = this.getNodeByUUID(uuid);
 
-		for (const id in this.subNodes) {
-			const n = this.subNodes[id] as NodeConnection;
-
-			if (n.uuid === uuid) {
-				node = n;
-				break;
-			}
-		}
-
-		if (node === undefined) {
+		if (node === null) {
 			event.response({
 				command: "getFileResponse",
 				error: true,
 				details: "Node not found"
 			});
 		} else {
-			const handlesAddr = this.address!.data;
-			handlesAddr.push(node.id, "fileHandles");
+			node.callMethod("getFile", event);
+		}
+	}
 
-			this.chain(handlesAddr, {
-				command: "getFile",
-				data: event.data.data
-			}, (response: Event) => {
-				if (response.data.error) {
-					event.response({
-						command: "getFileResponse",
-						error: true,
-						details: response.data.details
-					});
-				} else {
-					event.response({
-						command: "getFileResponse",
-						error: false,
-						data: response.data.data
-					});
-				}
+	async checkNodeRegistered (event: Event) {
+		const uuid = event.data.data.uuid;
+		const ref_uuid = event.data.data.ref_uuid;
+
+		try {
+			const info = await this.checkCached(uuid);
+
+			event.response({
+				command: "checkNodeRegisteredResponse",
+				data: info
+			});
+		} catch (err: any) {
+			if (ref_uuid === undefined) {
+				event.response({
+					command: "checkNodeRegisteredResponse",
+					error: true,
+					details: "Node not found"
+				});	
+				return;
+			}
+		}
+
+		const refNode = this.getNodeByUUID(ref_uuid);
+
+		if (refNode !== null) {
+			if (!this.pendingAsks[ref_uuid]) this.pendingAsks[ref_uuid] = {};
+			if (!this.pendingAsks[ref_uuid][uuid]) this.pendingAsks[ref_uuid][uuid] = [];
+
+			this.pendingAsks[ref_uuid][uuid].push(event);
+
+			refNode.callMethod("ask", uuid);
+			return;
+		}
+
+		try {
+			const refInfo = await this.checkCached(ref_uuid);
+
+			const node = await this.createConnection(ref_uuid, refInfo.ip, refInfo.port, refInfo.direct === 1);
+
+			if (!this.pendingAsks[ref_uuid]) this.pendingAsks[ref_uuid] = {};
+			if (!this.pendingAsks[ref_uuid][uuid]) this.pendingAsks[ref_uuid][uuid] = [];
+
+			this.pendingAsks[ref_uuid][uuid].push(event);
+
+			node.callMethod("ask", uuid);
+		} catch (err: any) {
+			event.response({
+				command: "checkNodeRegisteredResponse",
+				error: true,
+				details: "Node not found"
 			});
 		}
+	}
+
+	askResponse (event: Event) {
+		const ref_uuid = event.data.data.ref_uuid;
+		const result = event.data.data.response;
+		const uuid = result.uuid;
+
+		if (this.pendingAsks[ref_uuid] && this.pendingAsks[ref_uuid][uuid]) {
+			const arr = this.pendingAsks[ref_uuid][uuid] as Event[];
+
+			if (result.ok) {
+				const dbAddress = this.address!.parent.data;
+				dbAddress.push("db");
+
+				this.send(dbAddress, {
+					command: "rememberNode",
+					data: {
+						uuid: uuid,
+						ip: result.ip,
+						port: result.port
+					}
+				});
+
+				for (const ev of arr) {
+					ev.response({
+						command: "checkNodeRegisteredResponse",
+						error: false,
+						data: result
+					})
+				}
+			} else {
+				for (const ev of arr) {
+					ev.response({
+						command: "checkNodeRegisteredResponse",
+						error: true,
+						details: "Node not found"
+					})
+				}
+			}
+
+			delete this.pendingAsks[ref_uuid][uuid];
+		}
+	}
+
+	addUnassigned (id: number) {
+		this.unassignedIds.set(id, setTimeout(() => {
+			this.closeConnectionById(id.toString());
+		}, NODE_CONNECT_AWAIT));
+
+		this.unassignedPromise = new Promise((resolve, reject) => {
+			this.unassignedResolve = resolve;
+		})
+	}
+
+	resolveUnassigned (id: number, uuid: string) {
+		if (this.unassignedIds.has(id)) {
+			clearTimeout(this.unassignedIds.get(id));
+			this.unassignedIds.delete(id);
+
+			this.unassignedResolve && this.unassignedResolve(uuid);
+
+			if (this.unassignedIds.size > 0) {
+				this.unassignedPromise = new Promise((resolve, reject) => {
+					this.unassignedResolve = resolve;
+				});
+			} else {
+				delete this.unassignedPromise;
+				delete this.unassignedResolve;
+			}
+		}
+	}
+
+	resolvePending (uuid: string) {
+		const cb = this.pendingConnections[uuid]!.resolve as ((n: NodeConnection) => void);
+		delete this.pendingConnections[uuid];
+
+		for (const id in this.subNodes) {
+			const node = this.subNodes[id] as NodeConnection;
+
+			if (node.uuid === uuid) {
+				cb(node);
+				return;
+			}
+		}
+	}
+
+	rejectPending (uuid: string) {
+		const cb = this.pendingConnections[uuid]!.reject as (() => void);
+		delete this.pendingConnections[uuid];
+		cb();
+	}
+
+	getNodeByUUID (uuid: string): NodeConnection | null {
+		for (const id in this.subNodes) {
+			if ((this.subNodes[id] as NodeConnection).uuid === uuid) {
+				return (this.subNodes[id] as NodeConnection);
+			}
+		}
+
+		return null;
+	}
+
+	checkCached (uuid: string): Promise<NodeInfo> {
+		return new Promise((resolve, reject) => {
+			const dbAddress = this.address!.parent.data;
+			dbAddress.push("db");
+
+			this.chain(dbAddress, {
+				command: "checkNodeRegistered",
+				data: { uuid }
+			}, (response: Event) => {
+				if (response.data.error) {
+					reject("Node not found");
+				} else {
+					resolve(response.data.data as NodeInfo);
+				}
+			});
+		});
+	}
+
+	createConnection (uuid: string, ip: string, port: number, keepAlive: boolean, ref_uuid?: string): Promise<NodeConnection> {
+		if (this.pendingConnections[uuid]) return this.pendingConnections[uuid].promise;
+
+		this.pendingConnections[uuid] = {};
+
+		const pr = new Promise<NodeConnection>((resolve, reject) => {
+			const id = this.counter++;
+			const socket = Net.createConnection({ host: ip, port: port });
+			const conn = new NodeConnection(id.toString(), socket, this.selfInfo, uuid, ref_uuid, keepAlive);
+
+			this.addChild(id.toString(), conn);
+
+			this.pendingConnections[uuid].resolve = resolve;
+			this.pendingConnections[uuid].reject = reject;
+		});
+
+		this.pendingConnections[uuid].promise = pr;
+
+		return pr;
+	}
+
+	async connectNode (event: Event) {
+		const uuid = event.data.data.uuid;
+		const ref_uuid = event.data.data.ref_uuid;
+
+		// maybe we already have connection
+
+		const node = this.getNodeByUUID(uuid);
+
+		if (node !== null) {
+			event.response({
+				command: "connectNodeResponse",
+				error: false
+			});
+			return;
+		}
+
+		// maybe we are waiting for this node to connect
+		if (this.pendingConnections[uuid] !== undefined) {
+			try {
+				await this.pendingConnections[uuid].promise;
+
+				event.response({
+					command: "connectNodeResponse",
+					error: false
+				});
+				return;
+			} catch (err: any) {
+				event.response({
+					command: "connectNodeResponse",
+					error: true,
+					details: "The node is either offline or the handshake has not been completed"
+				});
+				return;
+			}
+		}
+
+		// while there are unassigned nodes wait for them to complete heartbeat
+		while (this.unassignedPromise) {
+			const created = await this.unassignedPromise;
+
+			if (created === uuid) {
+				event.response({
+					command: "connectNodeResponse",
+					error: false
+				});
+				return;
+			}
+		}
+
+		// maybe node is cached?
+		try {
+			const info = await this.checkCached(uuid);
+
+			await this.createConnection(uuid, info.ip, info.port, info.direct === 1);
+
+			event.response({
+				command: "connectNodeResponse",
+				error: false
+			});
+			return;
+		} catch (err: any) {
+
+		}
+
+		if (ref_uuid === "self") {
+			event.response({
+				command: "connectNodeResponse",
+				error: true,
+				details: "The node is either offline or the handshake has not been completed"
+			});
+			return;
+		}
+
+		const originalResponse = event.response;
+		event.response = async (obj: EventData) => {
+			if (obj.error) {
+				originalResponse.call(event, {
+					command: "connectNodeResponse",
+					error: true,
+					details: "The node is either offline or the handshake has not been completed"
+				});
+			} else {
+				try {
+					await this.createConnection(uuid, obj.data.ip, obj.data.port, false, ref_uuid);
+
+					originalResponse.call(event, {
+						command: "connectNodeResponse",
+						error: false
+					});
+				} catch (err: any) {
+					originalResponse.call(event, {
+						command: "connectNodeResponse",
+						error: true,
+						details: "The node is either offline or the handshake has not been completed"
+					});
+				}
+			}
+		}
+
+		this.checkNodeRegistered(event);
 	}
 }

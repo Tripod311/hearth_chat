@@ -33,10 +33,11 @@ export default class RelatedPage extends Component {
 			this.slots.content.clear();
 
 			for (const n of response.data) {
-				const drop = TemplateCache.createDrop("relatedNodeView", { title: n.title, description: n.description });
+				const drop = TemplateCache.createDrop("relatedNodeView", { uuid: n.uuid, title: n.title, description: n.description });
 				drop.refs.forget.style.display = "none";
 				drop.refs.copyLink.style.display = "none";
 				drop.refs.enter.style.display = "none";
+				drop.refs.uuid.style.display = "none";
 				drop.refs.container.onclick = this.goTo.bind(this, n.uuid);
 				drop.refs.container.style.cursor = "pointer";
 				this.slots.content.push(Component.generic({}, drop.node));

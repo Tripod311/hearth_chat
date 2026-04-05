@@ -38,7 +38,7 @@ export default class RelatedTab extends Component {
 			this.slots.nodes.clear();
 
 			for (const n of response.data) {
-				const drop = TemplateCache.createDrop("relatedNodeView", { title: n.title, description: n.description });
+				const drop = TemplateCache.createDrop("relatedNodeView", { uuid: n.uuid, title: n.title, description: n.description });
 				drop.refs.copyLink.onclick = this.copyLink.bind(this, n.uuid);
 				drop.refs.enter.onclick = this.enter.bind(this, n.uuid);
 				drop.refs.forget.onclick = this.forgetNode.bind(this, n.uuid);
