@@ -1,2 +1,2 @@
-- [English](/en/description)
-- [Русский](/ru/description)
+- [English](en/description)
+- [Русский](ru/description)
