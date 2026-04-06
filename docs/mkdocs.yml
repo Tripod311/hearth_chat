@@ -1,0 +1,17 @@
+site_name: Hearthchat
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - EN:
+    - Description: en/description.md
+    - Installation: en/installation.md
+    - Change log: en/log.md
+    - Roadmap: en/roadmap.md
+  - RU:
+    - Описание: ru/description.md
+    - Установка: ru/installation.md
+    - Обновления: ru/log.md
+    - Roadmap: ru/roadmap.md
