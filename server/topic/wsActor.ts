@@ -3,6 +3,8 @@ import { WebSocket } from "ws"
 import { Log } from "@tripod311/dispatch"
 import Actor from "./actor.js"
 
+const PING_TIMEOUT = 1000 * 10;
+
 export default class WSActor extends Actor {
 	private socket: WebSocket;
 	private timeout?: ReturnType<typeof setTimeout>;
@@ -36,7 +38,7 @@ export default class WSActor extends Actor {
 			switch (message.command) {
 				case "pong":
 					clearTimeout(this.timeout);
-					this.timeout = setTimeout(this.pingSocket.bind(this), 1000 * 60);
+					this.timeout = setTimeout(this.pingSocket.bind(this), PING_TIMEOUT);
 					break;
 				case "pushMessage":
 					this.emit("pushMessage", message.data);
@@ -92,7 +94,7 @@ export default class WSActor extends Actor {
 	pingSocket () {
 		this.socket.send(JSON.stringify({ command: "ping" }));
 
-		this.timeout = setTimeout(this.socketTimeout.bind(this), 1000 * 60);
+		this.timeout = setTimeout(this.socketTimeout.bind(this), PING_TIMEOUT);
 	}
 
 	socketTimeout () {

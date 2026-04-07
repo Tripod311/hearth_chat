@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.0",
-    "@tripod311/currents": "^0.0.7",
+    "@tripod311/currents": "^0.0.10",
     "@tripod311/dispatch": "^0.0.11",
     "@tripod311/flow": "^0.0.1",
     "@tripod311/pump": "^0.0.0",

@@ -20,6 +20,7 @@ export default class VoiceChat extends Component {
 	protected static template = View;
 
 	private opened: boolean = false;
+	private timeout?: ReturnType<typeof setTimeout>;
 	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; connectionRow: HTMLElement; }> = {};
 
 	mounted () {
@@ -37,7 +38,16 @@ export default class VoiceChat extends Component {
 		this.state.getProp("controls").onconsumerready = this.setConsumer.bind(this);
 	}
 
+	unmounted () {
+		clearTimeout(this.timeout);
+		
+		super.unmounted();
+	}
+
 	open () {
+		clearTimeout(this.timeout);
+
+		this.refs.container.style.display = "block";
 		this.refs.container.style.width = "100%";
 		this.refs.container.style.height = "100%";
 		this.opened = true;
@@ -46,6 +56,8 @@ export default class VoiceChat extends Component {
 	}
 
 	close () {
+		clearTimeout(this.timeout);
+
 		this.refs.container.style.width = "0";
 		this.refs.container.style.height = "0";
 		this.opened = false;
@@ -54,6 +66,10 @@ export default class VoiceChat extends Component {
 			this.blocks[id].video?.remove();
 			delete this.blocks[id].video;
 		}
+
+		this.timeout = setTimeout(() => {
+			this.refs.container.style.display = "none";
+		}, 200);
 	}
 
 	toggleConnection () {

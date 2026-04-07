@@ -26,6 +26,8 @@ export default class NodeConnection extends Node {
 	public keepAlive: boolean = false;
 
 	private socket: Net.Socket;
+	private socketOverflow: boolean = false;
+	private writeQueue: EventData[] = [];
 	private processor!: StreamProcessor;
 
 	private variables: Map<string, any> = new Map();
@@ -156,22 +158,47 @@ export default class NodeConnection extends Node {
 	}
 
 	sendEvent (data: EventData) {
-		const ev = new Event(
-			this.dispatcher!,
-			new Address([]),
-			new Address([]),
-			data
-		);
-		const buf = SerializeEvent(ev);
+		if (this.socket.destroyed) return;
 
-		if (!this.socket.destroyed) {
-			this.socket.write(buf, (err: any) => {
+		this.writeQueue.push(data);
+
+		this.flush();
+	}
+
+	flush () {
+		if (this.socketOverflow) return;
+
+		while (this.writeQueue.length > 0) {
+			const data = this.writeQueue.shift() as EventData;
+
+			const ev = new Event(
+				this.dispatcher!,
+				new Address([]),
+				new Address([]),
+				data
+			);
+
+			const buf = SerializeEvent(ev);
+
+			const writeOk = this.socket.write(buf, (err: any) => {
 				if (err) {
 					Log.warning(`Socket disconnected on write: ${err.toString()}`, 0);
 
 					this.socketDisconnected();
 				}
 			});
+
+			if (!writeOk) {
+				this.socketOverflow = true;
+
+				this.socket.once("drain", () => {
+					this.socketOverflow = false;
+
+					this.flush();
+				});
+
+				return;
+			}
 		}
 	}
 

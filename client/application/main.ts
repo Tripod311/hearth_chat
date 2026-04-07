@@ -89,6 +89,7 @@ export default class Application extends Component {
 		spinner.emit("close");
 
 		if (result.error) {
+			Model.getPipe("settings.currentNode").data = "self";
 			Model.getPipe("router").run("auth");
 		} else {
 			Model.getPipe("settings.username").data = result.userInfo.login;
