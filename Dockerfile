@@ -1,5 +1,7 @@
-FROM node:24-bookworm-slim
+# ---------- BUILD STAGE ----------
+FROM node:24-bookworm-slim AS builder
 
+# build deps
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -14,11 +16,30 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --omit=dev
+RUN npm install
 
 COPY . .
 
 RUN npx vite build
 RUN npx tsc
+
+
+# ---------- RUNTIME STAGE ----------
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+# runtime libs
+RUN apt-get update && apt-get install -y \
+    libsrtp2-1 \
+    libssl3 \
+    libuv1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/server_dist ./server_dist
+COPY --from=builder /app/client_dist ./dist
+COPY package*.json ./
+
+RUN npm install --omit=dev && npm cache clean --force
 
 CMD ["node", "server_dist/main.js"]

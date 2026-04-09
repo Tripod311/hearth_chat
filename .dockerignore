@@ -3,3 +3,4 @@ client_dist
 server_dist
 vapid.json
 data
+docs docs_src

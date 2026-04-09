@@ -14,9 +14,20 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
     "@tripod311/currents": "^0.0.11",
     "@tripod311/dispatch": "^0.0.14",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "mediasoup": "^3.19.18",
+    "web-push": "^3.6.7",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "mediasoup-client": "^3.18.7",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
     "@tripod311/flow": "^0.0.1",
     "@tripod311/pump": "^0.0.0",
     "@tripod311/splash": "^0.0.15",
@@ -26,15 +37,6 @@
     "@types/node": "^25.3.0",
     "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
-    "bcrypt": "^6.0.0",
-    "better-sqlite3": "^12.6.2",
-    "jsonwebtoken": "^9.0.3",
-    "mediasoup": "^3.19.18",
-    "mediasoup-client": "^3.18.7",
-    "tailwindcss": "^4.2.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "web-push": "^3.6.7",
-    "ws": "^8.19.0"
+    "@tailwindcss/vite": "^4.2.0"
   }
 }
