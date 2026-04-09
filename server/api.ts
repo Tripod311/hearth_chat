@@ -356,6 +356,12 @@ export default class API extends Node {
 			JsonBody,
 			unbanActor.bind(this)
 		]));
+
+		// PWA
+
+		this.instance.get("/manifest.json", this.baseChain.concat([
+			this.returnManifest.bind(this)
+		]));
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -513,6 +519,33 @@ export default class API extends Node {
 					});
 				}
 			}
+		});
+	}
+
+	async returnManifest (ctx: Context) {
+		const dbAddress = this.address!.parent.data;
+		dbAddress.push("db");
+
+		const infoEvent = await this.chainAsync(dbAddress, {
+			command: "getNodeSettings",
+			data: {}
+		});
+
+		ctx.status(200).json({
+			"id": `${infoEvent.data.data.uuid}`,
+			"name": `HearthChat - ${infoEvent.data.data.title}`,
+			"short_name": "HearthChat",
+			"start_url": "/",
+			"display": "standalone",
+			"background_color": "#000000",
+			"theme_color": "#000000",
+			"icons": [
+				{
+				  "src": "./icon.png",
+				  "sizes": "192x192",
+				  "type": "image/png"
+				}
+			]
 		});
 	}
 }

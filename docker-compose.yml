@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   hearthchat:
-    image: tripod311/hearth_chat:latest
+    image: hearthchat
     container_name: hearth_chat
 
     network_mode: host

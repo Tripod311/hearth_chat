@@ -22,6 +22,7 @@ export default class VoiceChat extends Component {
 	private opened: boolean = false;
 	private timeout?: ReturnType<typeof setTimeout>;
 	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; connectionRow: HTMLElement; }> = {};
+	private wakelock?: WakeLockSentinel;
 
 	mounted () {
 		super.mounted();
@@ -39,6 +40,8 @@ export default class VoiceChat extends Component {
 	}
 
 	unmounted () {
+		this.releaseWakeLock();
+
 		clearTimeout(this.timeout);
 		
 		super.unmounted();
@@ -53,9 +56,13 @@ export default class VoiceChat extends Component {
 		this.opened = true;
 
 		if (this.state.getProp("controls").connected) this.fill();
+
+		this.requestWakeLock();
 	}
 
 	close () {
+		this.releaseWakeLock();
+
 		clearTimeout(this.timeout);
 
 		this.refs.container.style.width = "0";
@@ -222,7 +229,7 @@ export default class VoiceChat extends Component {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
 				this.blocks[id].video.onclick = this.requestFullScreen.bind(this, this.blocks[id].video);
-				this.blocks[id].video.className = "w-full h-full object-cover";
+				this.blocks[id].video.className = "object-contain";
 				this.blocks[id].display.appendChild(this.blocks[id].video);
 
 				const stream = controls.getVideoStream(id);
@@ -252,6 +259,29 @@ export default class VoiceChat extends Component {
 			video.requestFullscreen();
 		} else if (video.webkitEnterFullscreen) {
 			video.webkitEnterFullscreen();
+		}
+	}
+
+	requestWakeLock () {
+		this.releaseWakeLock();
+
+		if ("wakeLock" in navigator) {
+			navigator.wakeLock.request().then((wakelock: WakeLockSentinel) => {
+				if (!this.opened) {
+					wakelock.release();
+				} else {
+					this.wakelock = wakelock;
+				}
+			}, (err: any) => {
+				console.warn("WakeLock acquire failed: " + err.toString());
+			});
+		}
+	}
+
+	releaseWakeLock () {
+		if (this.wakelock) {
+			this.wakelock.release();
+			this.wakelock = undefined;
 		}
 	}
 }
