@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/server_dist ./server_dist
-COPY --from=builder /app/client_dist ./dist
+COPY --from=builder /app/client_dist ./client_dist
 COPY package*.json ./
 
 RUN npm install --omit=dev && npm cache clean --force

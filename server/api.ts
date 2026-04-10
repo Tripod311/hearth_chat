@@ -532,7 +532,7 @@ export default class API extends Node {
 		});
 
 		ctx.status(200).json({
-			"id": `${infoEvent.data.data.uuid}`,
+			"id": `HEARTHCHAT_${infoEvent.data.data.uuid}`,
 			"name": `HearthChat - ${infoEvent.data.data.title}`,
 			"short_name": "HearthChat",
 			"start_url": "/",
