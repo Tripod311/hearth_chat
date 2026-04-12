@@ -1,15 +1,19 @@
 import FS from "fs"
 import path from "path"
+import crypto from "crypto"
+import { PassThrough } from "stream"
 import { Log } from "@tripod311/dispatch"
 import type { EventData, Event } from "@tripod311/dispatch"
 import type NodeConnection from "../nodeConnection.js"
+import { waitFileSize } from "../utils.js"
 
 const FILE_TIMEOUT = 1000 * 60 * 5;
 const CHUNK_SIZE = 64 * 1024;
 
 interface GetRequest {
 	baseEvent: Event;
-	chunks: Buffer[];
+	responded: boolean;
+	stream: PassThrough;
 	timeout: ReturnType<typeof setTimeout>;
 }
 
@@ -28,18 +32,9 @@ function getFile (this: NodeConnection, event: Event) {
 
 	waiting.set(getId, {
 		baseEvent: event,
-		chunks: [],
-		timeout: setTimeout(
-			() => {
-				event.response({
-					command: "getFileResponse",
-					error: true,
-					details: "Timeout"
-				});
-				waiting.delete(getId)
-			},
-			FILE_TIMEOUT
-		)
+		stream: new PassThrough(),
+		responded: false,
+		timeout: setTimeout(getTimeout.bind(this, getId), FILE_TIMEOUT)
 	});
 
 	this.callMethod("sendEvent", {
@@ -51,6 +46,24 @@ function getFile (this: NodeConnection, event: Event) {
 	});
 }
 
+function getTimeout (this: NodeConnection, getId: number) {
+	const waiting = this.getVariable('waitingGets');
+	const getData = waiting.get(getId);
+
+	if (getData) {
+		if (!getData.responded) {
+			getData.baseEvent.response({
+				command: "getFileResponse",
+				error: true,
+				details: "Timeout"
+			})
+		}
+
+		getData.stream.destroy();
+		waiting.delete(getId);
+	}
+}
+
 function getFileResponse (this: NodeConnection, data: EventData) {
 	const waiting = this.getVariable('waitingGets');
 	const getId = data.data.getId;
@@ -58,26 +71,35 @@ function getFileResponse (this: NodeConnection, data: EventData) {
 
 	if (getData) {
 		if (data.data.ok) {
-			getData.chunks.push(data.data.chunk);
-
-			if (data.data.isFinal) {
-				clearTimeout(getData.timeout);
+			if (data.data.size) {
+				getData.responded = true;
 
 				getData.baseEvent.response({
 					command: "getFileResponse",
-					error: false,
-					data: { content: new Uint8Array(Buffer.concat(getData.chunks)) }
+					data: {
+						stream: getData.stream,
+						size: data.data.size
+					}
 				});
-				waiting.delete(getId);
+			} else {
+				getData.stream.write(data.data.chunk);
+
+				if (data.data.isFinal) {
+					clearTimeout(getData.timeout);
+					getData.stream.end();
+					waiting.delete(getId);
+				}
 			}
 		} else {
 			clearTimeout(getData.timeout);
 
-			getData.baseEvent.response({
-				command: "getFileResponse",
-				error: true,
-				details: data.details
-			});
+			if (!getData.responded) {
+				getData.baseEvent.response({
+					command: "getFileResponse",
+					error: true,
+					details: data.details
+				});
+			}
 			waiting.delete(getId);
 		}
 	}
@@ -96,10 +118,8 @@ async function receiveGetFile (this: NodeConnection, data: EventData) {
 			throw new Error("Invalid path");
 		}
 
-		const stat = FS.statSync(fullPath);
+		const stat = await waitFileSize(fullPath);
 		const size = stat.size;
-
-		if (size === 0) throw new Error("Invalid file size")
 
 		const buf: GetBuffer = {
 			getId: getId,
@@ -117,6 +137,15 @@ async function receiveGetFile (this: NodeConnection, data: EventData) {
 		}
 
 		buffers.set(getId, buf);
+
+		this.callMethod("sendEvent", {
+			command: "getFileResponse",
+			data: {
+				ok: true,
+				getId: getId,
+				size: size
+			}
+		});
 
 		this.callMethod("nextChunk", getId);
 	} catch (err: any) {
@@ -185,11 +214,16 @@ async function clearAllGets (this: NodeConnection) {
 
 	for (const getData of waiting.values()) {
 		clearTimeout(getData.timeout);
-		getData.baseEvent.response({
-			command: "getFileResponse",
-			error: true,
-			details: "Shutdown"
-		});
+
+		getData.stream.destroy();
+
+		if (!getData.responded) {
+			getData.baseEvent.response({
+				command: "getFileResponse",
+				error: true,
+				details: "Shutdown"
+			});
+		}
 	}
 
 	for (const [getId, buf] of buffers.entries()) {

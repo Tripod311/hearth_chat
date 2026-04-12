@@ -1,3 +1,7 @@
+### Hearthchat 1.0.1
+
+Improved file transfer for better experience
+
 ### Hearthchat 1.0.0
 
 Core functionality has been implemented:

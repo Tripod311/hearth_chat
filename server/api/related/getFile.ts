@@ -26,7 +26,7 @@ export default function getFile (this: API, ctx: Context): Promise<void> {
 				if (response.data.error) {
 					ctx.status(500).json({ error: true, details: response.data.details });
 				} else {
-					ctx.status(200).binary(Buffer.from(response.data.data.content));
+					ctx.status(200).send(response.data.data.stream, response.data.data.size);
 				}
 
 				resolve();

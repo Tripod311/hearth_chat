@@ -4,6 +4,7 @@ import { Log } from "@tripod311/dispatch"
 import type { EventData, Event } from "@tripod311/dispatch"
 import { StreamingMultipartFile } from "@tripod311/currents"
 import type NodeConnection from "../nodeConnection.js"
+import { waitFileSize } from "../utils.js"
 
 const CHUNK_SIZE = 64 * 1024;
 
@@ -73,14 +74,9 @@ async function pushFile (this: NodeConnection, pushId: number) {
 			ext = sp[sp.length-1];
 		}
 
-		const stat = FS.statSync(baseFile.tmpLink)
+		const stat = await waitFileSize(baseFile.tmpLink);
 		const size = stat.size;
 		const fd = await FS.promises.open(baseFile.tmpLink, 'r');
-
-		if (size === 0) {
-			debugger;
-			throw new Error("Invalid file size");
-		}
 
 		const handle: FileHandle = {
 			file: fd,
@@ -184,6 +180,7 @@ async function clearPush (this: NodeConnection, pushId: number) {
 
 async function clearAllPushes (this: NodeConnection) {
 	const waiting = this.getVariable("waitingPushes");
+	const buffers = this.getVariable("pushBuffers");
 
 	for (const [pushId, pushData] of waiting.entries()) {
 		waiting.delete(pushId);
@@ -205,6 +202,34 @@ async function clearAllPushes (this: NodeConnection) {
 
 		for (const file of pushData.baseFiles) {
 			await file.clear();
+		}
+	}
+
+	for (const [ pushId, files ] of buffers.entries()) {
+		this.callMethod("sendEvent", {
+			command: "pushFilesResponse",
+			data: {
+				ok: false,
+				pushId: pushId,
+				details: "Shutdown"
+			}
+		})
+
+		for (const f of files) {
+			f.stream.destroy();
+			await FS.promises.rm(`./data/files/${f.name}`, { force: true });
+		}
+	}
+}
+
+async function clearBuffer (this: NodeConnection, pushId: string) {
+	const buffers = this.getVariable("pushBuffers");
+	const buf = buffers.get(pushId);
+
+	if (buf) {
+		for (const file of buf) {
+			file.stream.destroy();
+			await FS.promises.rm(`./data/files/${file.name}`, { force: true });
 		}
 	}
 }
@@ -240,43 +265,50 @@ function pushStart (this: NodeConnection, data: EventData) {
 function receiveFile (this: NodeConnection, data: EventData) {
 	const buffers = this.getVariable("pushBuffers");
 	const files = buffers.get(data.data.pushId);
-	files.push({
-		chunks: [],
-		ext: data.data.ext
-	});
+
+	let fName = crypto.randomUUID();
+	if (data.data.ext) fName += `.${data.data.ext}`;
+
+	try {
+		files.push({
+			name: fName,
+			stream: FS.createWriteStream(`./data/files/${fName}`)
+		});
+	} catch (err: any) {
+		this.callMethod("sendEvent", {
+			command: "pushFilesResponse",
+			error: false,
+			data: { ok: false, pushId: data.data.pushId, details: err.toString() }
+		});
+
+		this.callMethod("clearBuffer", data.data.pushId);
+	}
 }
 
 function receiveChunk (this: NodeConnection, data: EventData) {
 	const buffers = this.getVariable("pushBuffers");
 	const files = buffers.get(data.data.pushId);
-	const file = files[files.length - 1];
+	if (files) {
+		const file = files[files.length - 1];
 
-	file.chunks.push(data.data.chunk);
+		file.stream.write(data.data.chunk);
+	}
 }
 
 async function pushEnd (this: NodeConnection, data: EventData) {
-	const buffers = this.getVariable("pushBuffers");
-	const files = buffers.get(data.data.pushId);
+	try {
+		const buffers = this.getVariable("pushBuffers");
+		const files = buffers.get(data.data.pushId);
 
-	let err: any = null;
-	const savedNames: string[] = [];
+		if (!files) throw new Error("Push not found");
 
-	for (const file of files) {
-		let fName = crypto.randomUUID();
-		if (file.ext) fName += '.' + file.ext;
+		const savedNames: string[] = [];
 
-		const fullName = `./data/files/${fName}`;
-
-		try {
-			await FS.promises.writeFile(fullName, Buffer.concat(file.chunks));
-			savedNames.push(fName);
-		} catch (fErr: any) {
-			err = fErr;
-			break;
+		for (const file of files) {
+			file.stream.end();
+			savedNames.push(file.name);
 		}
-	}
 
-	if (!err) {
 		const trackerAddr = this.address!.parent.parent.data;
 		trackerAddr.push("uploadsTracker");
 
@@ -290,12 +322,10 @@ async function pushEnd (this: NodeConnection, data: EventData) {
 			error: false,
 			data: { ok: true, pushId: data.data.pushId, names: savedNames }
 		});
-	} else {
-		for (const fName in savedNames) {
-			const fullName = `./data/files/${fName}`;
 
-			await FS.promises.rm(fullName, { force: true });
-		}
+		buffers.delete(data.data.pushId);
+	} catch (err: any) {
+		this.callMethod("clearBuffer", data.data.pushId);
 
 		this.callMethod("sendEvent", {
 			command: "pushFilesResponse",
@@ -319,6 +349,7 @@ export default function setup (node: NodeConnection) {
 	node.registerMethod("pushFile", pushFile);
 	node.registerMethod("pushChunk", pushChunk);
 	node.registerMethod("clearPush", clearPush);
+	node.registerMethod("clearBuffer", clearBuffer);
 
 	node.registerRoute("pushFilesResponse", pushFilesResponse);
 	node.registerRoute("pushStart", pushStart);
