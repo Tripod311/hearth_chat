@@ -2,8 +2,8 @@ version: "3.9"
 
 services:
   hearthchat:
-    image: hearthchat
-    container_name: hearth_chat
+    image: tripod311/hearthchat:latest
+    container_name: hearthchat
 
     network_mode: host
 

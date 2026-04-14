@@ -54,8 +54,8 @@ import unbanActor from "./api/actor/unban.js"
 
 const MP_OPTS = {
 	tmpDir: "./data/tmp",
-	maxRequestSize: 1024 * 1024 * 35,
-    maxFileSize: 1024 * 1024 * 30,
+	maxRequestSize: 1024 * 1024 * 105,
+    maxFileSize: 1024 * 1024 * 100,
     maxFieldSize: 1024 * 1024 * 10,
     maxPartHeaderSize: 1024 * 16,
     maxParts: 50,
@@ -534,7 +534,7 @@ export default class API extends Node {
 		ctx.status(200).json({
 			"id": `HEARTHCHAT_${infoEvent.data.data.uuid}`,
 			"name": `HearthChat - ${infoEvent.data.data.title}`,
-			"short_name": "HearthChat",
+			"short_name": `${infoEvent.data.data.title}`,
 			"start_url": "/",
 			"display": "standalone",
 			"background_color": "#000000",
