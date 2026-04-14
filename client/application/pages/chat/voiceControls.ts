@@ -186,14 +186,18 @@ export default class VoiceControls {
 
 	producerDeleted (data: { kind: string }) {
 		if (data.kind === "audio") {
-			this.producers.audio?.close();
-			delete this.producers.audio;
+			if (this.producers.audio) {
+				this.producers.audio.close();
+				delete this.producers.audio;
+			}
 
 			if (this._audioTrack !== undefined) this.createProducer("audio");
 			else this.pendingProducerRequest[data.kind] = false;
 		} else if (data.kind === "video") {
-			this.producers.video.close();
-			delete this.producers?.video;
+			if (this.producers.video) {
+				this.producers.video.close();
+				delete this.producers.video;
+			}
 
 			if (this._videoTrack !== undefined) this.createProducer("video");
 			else this.pendingProducerRequest[data.kind] = false;

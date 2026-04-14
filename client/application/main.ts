@@ -189,9 +189,9 @@ export default class Application extends Component {
 			this.refs.notificationButton.style.display = "none";
 		} else {
 			if (result.subscribed) {
-				this.refs.notificationButton.src = BellCrossIcon;
-			} else {
 				this.refs.notificationButton.src = BellIcon;
+			} else {
+				this.refs.notificationButton.src = BellCrossIcon;
 			}
 		}
 	}

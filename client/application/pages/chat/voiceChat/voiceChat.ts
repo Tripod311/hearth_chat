@@ -21,8 +21,11 @@ export default class VoiceChat extends Component {
 
 	private opened: boolean = false;
 	private timeout?: ReturnType<typeof setTimeout>;
-	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; connectionRow: HTMLElement; }> = {};
+	private selfVideo?: HTMLElement;
+	private blocks: Record<number, { audio?: HTMLElement; video?: HTMLElement; display: HTMLElement; }> = {};
 	private wakelock?: WakeLockSentinel;
+
+	private fsListener!: () => void;
 
 	mounted () {
 		super.mounted();
@@ -37,10 +40,19 @@ export default class VoiceChat extends Component {
 
 		this.state.getProp("controls").onupdate = this.onUpdate.bind(this);
 		this.state.getProp("controls").onconsumerready = this.setConsumer.bind(this);
+
+		this.updateCounter();
+
+		this.fsListener = this.fullScreenListener.bind(this);
+		document.addEventListener("fullscreenchange", this.fsListener);
+		document.addEventListener("webkitfullscreenchange", this.fsListener);
 	}
 
 	unmounted () {
 		this.releaseWakeLock();
+
+		document.removeEventListener("fullscreenchange", this.fsListener);
+		document.removeEventListener("webkitfullscreenchange", this.fsListener);
 
 		clearTimeout(this.timeout);
 		
@@ -51,8 +63,10 @@ export default class VoiceChat extends Component {
 		clearTimeout(this.timeout);
 
 		this.refs.container.style.display = "block";
-		this.refs.container.style.width = "100%";
-		this.refs.container.style.height = "100%";
+		this.timeout = setTimeout(() => {
+			this.refs.container.style.width = "100%";
+			this.refs.container.style.height = "100%";
+		}, 100);
 		this.opened = true;
 
 		if (this.state.getProp("controls").connected) this.fill();
@@ -70,9 +84,11 @@ export default class VoiceChat extends Component {
 		this.opened = false;
 
 		for (const id in this.blocks) {
-			this.blocks[id].video?.remove();
+			this.blocks[id].video.remove();
 			delete this.blocks[id].video;
 		}
+
+		this.selfVideo?.remove();
 
 		this.timeout = setTimeout(() => {
 			this.refs.container.style.display = "none";
@@ -124,15 +140,25 @@ export default class VoiceChat extends Component {
 			this.refs.connect.innerText = "Disconnect";
 			this.refs.voice.style.display = "block";
 			this.refs.video.style.display = "block";
-			this.refs.voice.src = controls.audioTrack ? NoMicIcon : MicIcon;
-			this.refs.video.src = controls.videoTrack ? NoCamIcon : CamIcon;
+			this.refs.voice.src = controls.audioTrack ? MicIcon : NoMicIcon;
+			this.refs.video.src = controls.videoTrack ? CamIcon : NoCamIcon;
 		} else {
 			this.refs.connect.innerText = "Connect"
 			this.refs.voice.style.display = "none";
 			this.refs.video.style.display = "none";
 		}
 
-		if (this.opened) this.fill();
+		if (this.opened) {
+			this.fill();
+			this.updateCounter();
+		}
+	}
+
+	updateCounter () {
+		const controls = this.state.getProp("controls");
+		const state = controls.state;
+
+		this.refs.connectedCount.innerText = `Connected users: ${Object.keys(state).length}`;
 	}
 
 	fillAudio () {
@@ -194,16 +220,36 @@ export default class VoiceChat extends Component {
 		for (const id of toDelete) {
 			this.blocks[id].audio?.remove();
 			this.blocks[id].display.remove();
-			this.blocks[id].connectionRow.remove();
 			delete this.blocks[id];
 		}
 
 		// create new blocks
 		for (const id of real) {
+			if (id === this.selfId.toString()) {
+				if (!state[id].video) {
+					this.selfVideo?.remove();
+					this.refs.selfVideoContainer.style.display = "none";
+				} else {
+					this.selfVideo?.remove();
+					this.refs.selfVideoContainer.style.display = "block";
+
+					this.selfVideo = document.createElement("video");
+					this.selfVideo.muted = true;
+					this.selfVideo.className = "object-cover";
+					this.selfVideo.onclick = this.requestFullScreen.bind(this, this.selfVideo);
+					this.refs.selfVideoContainer.appendChild(this.selfVideo);
+
+					const stream = controls.getVideoStream(id);
+					this.selfVideo.srcObject = stream;
+					this.selfVideo.play();
+				}
+
+				continue;
+			}
+
 			if (!this.blocks[id]) {
 				this.blocks[id] = {
 					display: TemplateCache.createDrop("voiceChatBlock", { display_name: state[id].display_name }).node,
-					connectionRow: TemplateCache.createDrop("voiceChatConnection", { display_name: state[id].display_name }).node
 				};
 			}
 
@@ -229,7 +275,7 @@ export default class VoiceChat extends Component {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
 				this.blocks[id].video.onclick = this.requestFullScreen.bind(this, this.blocks[id].video);
-				this.blocks[id].video.className = "object-contain";
+				this.blocks[id].video.className = "object-cover";
 				this.blocks[id].display.appendChild(this.blocks[id].video);
 
 				const stream = controls.getVideoStream(id);
@@ -242,7 +288,6 @@ export default class VoiceChat extends Component {
 			}
 
 			this.refs.blocks.appendChild(this.blocks[id].display);
-			this.refs.connections.appendChild(this.blocks[id].connectionRow);
 		}
 	}
 
@@ -255,10 +300,20 @@ export default class VoiceChat extends Component {
 	}
 
 	requestFullScreen (video: HTMLElement) {
-		if (video.requestFullscreen) {
-			video.requestFullscreen();
-		} else if (video.webkitEnterFullscreen) {
-			video.webkitEnterFullscreen();
+		this.refs.fsVideo.srcObject = video.srcObject;
+		this.refs.fsVideo.play();
+
+		if (this.refs.fsVideo.requestFullscreen) {
+			this.refs.fsVideo.requestFullscreen();
+		} else if (this.refs.fsVideo.webkitEnterFullscreen) {
+			this.refs.fsVideo.webkitEnterFullscreen();
+		}
+	}
+
+	fullScreenListener () {
+		if (document.fullscreenElement !== this.refs.fsVideo) {
+			this.refs.fsVideo.pause();
+			this.refs.fsVideo.srcObject = undefined;
 		}
 	}
 
