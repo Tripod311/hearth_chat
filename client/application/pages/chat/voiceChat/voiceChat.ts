@@ -235,7 +235,7 @@ export default class VoiceChat extends Component {
 
 					this.selfVideo = document.createElement("video");
 					this.selfVideo.muted = true;
-					this.selfVideo.className = "object-cover";
+					this.selfVideo.className = "object-cover grow";
 					this.selfVideo.onclick = this.requestFullScreen.bind(this, this.selfVideo);
 					this.refs.selfVideoContainer.appendChild(this.selfVideo);
 
@@ -275,7 +275,7 @@ export default class VoiceChat extends Component {
 				this.blocks[id].video = document.createElement("video");
 				this.blocks[id].video.muted = true;
 				this.blocks[id].video.onclick = this.requestFullScreen.bind(this, this.blocks[id].video);
-				this.blocks[id].video.className = "object-cover";
+				this.blocks[id].video.className = "object-cover grow";
 				this.blocks[id].display.appendChild(this.blocks[id].video);
 
 				const stream = controls.getVideoStream(id);
