@@ -3,62 +3,100 @@
 ## Repository
 
 Source code is available at:  
-[https://github.com/Tripod311/hearth_chat](https://github.com/Tripod311/hearth_chat)
+https://github.com/Tripod311/hearth_chat
 
 ---
 
 ## System Requirements
 
-Hearthchat depends on mediasoup, which has limited support for ARM architectures.
+Hearthchat uses mediasoup, which has limited support for ARM architecture.
 
 **Recommended platform:**  
 - x86_64 host
 
 ---
 
-## Installation (Docker)
+## Installation via docker pull
 
-The easiest way to install Hearthchat is via Docker.
+## 1. Create docker-compose.yml
 
-### 1. Install dependencies
+Create a `docker-compose.yml` file with the following content:
 
-Make sure the following are installed on your host:
+```yaml
+services:
+  hearthchat:
+    image: tripod311/hearthchat:latest
+    container_name: hearthchat
 
-- Docker  
-- Git  
+    network_mode: host
 
----
+    restart: unless-stopped
 
-### 2. Clone repository and build image
+    environment:
+      - HTTP_PORT=443
+      - GATE_PORT=14567
+      - PORT_BASE=45000
+      - PORT_RANGE=999
 
-```bash
-git clone https://github.com/Tripod311/hearth_chat.git
-cd hearth_chat
-docker build -t hearthchat .
+    volumes:
+      - ./data:/app/data
 ```
 
 ---
 
-## Configuration
+## 2. Port configuration
 
-Configuration is defined in `docker-compose.yml`.
+You can change the ports if needed:
 
-### Environment variables
+- **HTTP_PORT** — port for web interface access  
+- **GATE_PORT** — TCP port for node-to-node communication  
+- **PORT_BASE / PORT_RANGE** — used by mediasoup  
 
-- `HTTP_PORT` — port for HTTP(S) server (web interface)
-- `GATE_PORT` — port for node-to-node communication
-- `PORT_BASE`, `PORT_RANGE` — UDP port range for mediasoup traffic  
-  - Recommended values:
-    - `PORT_BASE=40000`
-    - `PORT_RANGE=1000`
+> Usually, these do not need to be changed.  
+> If running multiple nodes on the same host, it's recommended to split port ranges.
 
 ---
 
-## SSL Certificates (Optional but Recommended)
+## 3. Start the container
 
-You can provide TLS certificates manually.
+Run the application:
 
-Create the following structure:
+```bash
+docker compose up
+```
+
+After startup, a `data` folder will be created — it contains all node data.
+
+📦 This folder can be moved between hosts (it acts as your backup).
+
+---
+
+## 4. First login
+
+Open in your browser:
+
+```
+http://<host_address>:<HTTP_PORT>
+```
+
+Default credentials:
+
+- **login:** root  
+- **password:** root  
+
+⚠️ It is recommended to:
+
+1. Create a new user  
+2. Log in with it  
+3. Delete the `root` user  
+
+---
+
+## 5. TLS configuration (recommended)
+
+You can manually add TLS certificates.
+
+### Folder structure:
 
 ```
 data/
@@ -68,166 +106,16 @@ data/
     server.ca (optional)
 ```
 
-If certificates are not provided:
+### If certificates are not set:
 
-- browsers will show security warnings
-- voice/video chat may not work properly
-
----
-
-## Running the Server
-
-Start the server:
-
-```bash
-docker compose up
-```
-
-If successful:
-
-- HTTP and Gate servers will start
-- A `data/` directory will be created with:
-  - `database.sqlite`
-  - `files/`
-  - `tmp/`
+- the browser will show warnings  
+- voice and video chat may work incorrectly  
 
 ---
 
-## First Login
+## 6. Run in background
 
-Open in browser:
-
-```
-https://your-domain:your-port
-```
-
-Default credentials:
-
-- login: `root`
-- password: `root`
-
-⚠️ It is strongly recommended to change or remove the default root account.
-
----
-
-## Administration Panel
-
-### Node Tab
-
-- Configure node name and description
-- Edit the title page (currently JSON-based)
-
-Example:
-
-```json
-[
-  {
-    "type": "text",
-    "data": {
-      "title": "Control Center",
-      "text": "Report bugs and features in the main topic using @push."
-    }
-  },
-  {
-    "type": "refs",
-    "data": [
-      {
-        "link": "/self/topic/1",
-        "title": "General Chat",
-        "description": "public topic"
-      }
-    ]
-  }
-]
-```
-
----
-
-### Voice Configuration
-
-To enable voice/video chat:
-
-- Set `announced_ip` (your server public IP)
-- Configure ICE candidates
-
-Example:
-
-```json
-[
-  {
-    "urls": "stun:stun.l.google.com:19302"
-  },
-  {
-    "urls": "turn:openrelay.metered.ca:80",
-    "username": "openrelayproject",
-    "credential": "openrelayproject"
-  }
-]
-```
-
----
-
-### Important Notes
-
-If you change any of the following:
-
-- `HTTP_PORT`
-- `GATE_PORT`
-- `announced_ip`
-- `iceCandidates`
-
-You must restart the server.
-
-⚠️ Federation connections may break and need to be re-established manually.
-
----
-
-### Users Tab
-
-- Create, edit, delete users
-- Generate invite links (`Create Invite`)
-
-Recommended:
-
-- Change default root password  
-- Or create a new admin user and remove root  
-
----
-
-### Actors Tab
-
-- View all users who interacted with the node
-- Ban/unban users
-
-Banned users:
-
-- can pass through the node
-- cannot read topics or use chats
-
----
-
-### Topics Tab
-
-- View, edit, delete topics created on the node
-
----
-
-### Related Nodes Tab
-
-- Manage federation connections
-- Send handshake requests
-
-To connect:
-
-1. Enter node URL (e.g. `https://some-node.io:port`)
-2. Add optional message
-3. Click **Send**
-
----
-
-## Production Run
-
-After configuration:
+After initial startup, you can stop the container and run it in background:
 
 ```bash
 docker compose up -d
@@ -235,18 +123,125 @@ docker compose up -d
 
 ---
 
-## Node Migration
+## Notes
 
-To migrate a node:
+- All data is stored in the `data` folder  
+- Node migration = copying this folder  
+- Backup = archive of `data`  
 
-1. Copy the entire `data/` directory to a new server  
-2. Start Hearthchat on the new host  
-3. Update `announced_ip` in admin panel  
-4. Remove old related nodes  
-5. Re-send handshake requests  
+# Installation from source
+
+## Build Docker image from source
+
+⚠️ **Not recommended for low-performance hosts**
+
+The build process may hang or take a long time because during `npm install`, mediasoup may start compiling native dependencies, which heavily loads the system.
 
 ---
 
-## Done
+### 1. Clone the repository
 
-Your Hearthchat node is now ready to use.
+```bash
+git clone https://github.com/Tripod311/hearth_chat
+```
+
+This command downloads the project source code from GitHub.
+
+After execution, a `hearth_chat` directory will appear.
+
+---
+
+### 2. Build Docker image
+
+```bash
+docker build -t tripod311/hearthchat:latest .
+```
+
+This command:
+
+- builds a Docker image from source  
+- uses the current directory as build context  
+- assigns the tag `tripod311/hearthchat:latest`  
+
+⏳ The process may take a significant amount of time depending on your host.
+
+---
+
+## Run from source (without Docker)
+
+If you prefer not to use Docker, you can run the application directly as a Node.js service.
+
+In this case:
+
+- the `data` folder will be created in the project working directory  
+- all data will be stored locally alongside the application  
+
+---
+
+### Requirements
+
+- **Node.js version 20 or higher**
+
+---
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Tripod311/hearth_chat
+```
+
+Downloads the project source code.
+
+---
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+Installs all required dependencies listed in `package.json`.
+
+⚠️ mediasoup may also compile during this step, which can take time.
+
+---
+
+### 3. Build frontend
+
+```bash
+npx vite build
+```
+
+Builds the frontend into an optimized production bundle.
+
+---
+
+### 4. Compile backend
+
+```bash
+npx tsc
+```
+
+Compiles TypeScript server code into JavaScript.
+
+Output is placed in the `server_dist` directory.
+
+---
+
+### 5. Start the application
+
+```bash
+node server_dist/main.js
+```
+
+Starts the Hearthchat server.
+
+After startup, the application will be available on the configured port.
+
+---
+
+## Notes
+
+- On first run, the `data` folder is created automatically  
+- All user data, files, and settings are stored there  
+- To migrate a node, simply copy the `data` folder  

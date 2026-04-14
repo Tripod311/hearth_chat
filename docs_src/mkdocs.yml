@@ -8,10 +8,12 @@ nav:
   - EN:
     - Description: en/description.md
     - Installation: en/installation.md
+    - Administrator manual: en/admin.md
     - Change log: en/log.md
     - Roadmap: en/roadmap.md
   - RU:
     - Описание: ru/description.md
     - Установка: ru/installation.md
+    - Руководство админа: ru/admin.md
     - Обновления: ru/log.md
     - Roadmap: ru/roadmap.md

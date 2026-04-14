@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   hearthchat:
     image: tripod311/hearthchat:latest

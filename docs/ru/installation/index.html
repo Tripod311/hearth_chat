@@ -12,7 +12,7 @@
         <link rel="prev" href="../description/">
       
       
-        <link rel="next" href="../log/">
+        <link rel="next" href="../admin/">
       
       
         
@@ -326,6 +326,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../en/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administrator manual
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../en/log/" class="md-nav__link">
         
   
@@ -548,61 +576,88 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#docker" class="md-nav__link">
+  <a href="#docker-pull" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Установка (Docker)
+        Установка через docker pull
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Установка (Docker)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Установка зависимостей
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Клонирование репозитория и сборка образа
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#1-docker-composeyml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Конфигурация
+        1. Создание docker-compose.yml
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Конфигурация">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Настройка портов
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Запуск контейнера
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Первый вход
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Настройка TLS (рекомендуется)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Настройка TLS (рекомендуется)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Структура папок:
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Переменные окружения
+        Если сертификаты не заданы:
       
     </span>
   </a>
@@ -615,10 +670,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ssl-" class="md-nav__link">
+  <a href="#6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SSL-сертификаты (опционально, но рекомендуется)
+        6. Фоновый режим
       
     </span>
   </a>
@@ -629,145 +684,7 @@
   <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Запуск сервера
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Первый вход
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Административная панель
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Административная панель">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#node" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Node
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Настройка голосового чата
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_9" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Важные замечания
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#users" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Users
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#actors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Actors
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Topics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#related" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Related
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_10" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Запуск в фоне
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Перенос узла
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Готово
+        Примечания
       
     </span>
   </a>
@@ -778,6 +695,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство админа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -895,61 +840,88 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#docker" class="md-nav__link">
+  <a href="#docker-pull" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Установка (Docker)
+        Установка через docker pull
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Установка (Docker)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Установка зависимостей
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Клонирование репозитория и сборка образа
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#1-docker-composeyml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Конфигурация
+        1. Создание docker-compose.yml
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Конфигурация">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Настройка портов
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Запуск контейнера
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Первый вход
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Настройка TLS (рекомендуется)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Настройка TLS (рекомендуется)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Структура папок:
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Переменные окружения
+        Если сертификаты не заданы:
       
     </span>
   </a>
@@ -962,10 +934,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ssl-" class="md-nav__link">
+  <a href="#6" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SSL-сертификаты (опционально, но рекомендуется)
+        6. Фоновый режим
       
     </span>
   </a>
@@ -976,145 +948,7 @@
   <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Запуск сервера
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Первый вход
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Административная панель
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Административная панель">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#node" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Node
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Настройка голосового чата
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_9" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Важные замечания
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#users" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Users
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#actors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Actors
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Topics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#related" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Вкладка Related
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_10" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Запуск в фоне
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Перенос узла
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Готово
+        Примечания
       
     </span>
   </a>
@@ -1148,186 +982,158 @@
 <p><strong>Рекомендуемая платформа:</strong><br />
 - x86_64 хост</p>
 <hr />
-<h2 id="docker">Установка (Docker)</h2>
-<p>Наиболее простой способ установки — использование Docker.</p>
-<h3 id="1">1. Установка зависимостей</h3>
-<p>Убедитесь, что на хосте установлены:</p>
-<ul>
-<li>Docker  </li>
-<li>Git  </li>
-</ul>
-<hr />
-<h3 id="2">2. Клонирование репозитория и сборка образа</h3>
-<pre><code class="language-bash">git clone https://github.com/Tripod311/hearth_chat.git
-cd hearth_chat
-docker build -t hearthchat .
+<h2 id="docker-pull">Установка через docker pull</h2>
+<h2 id="1-docker-composeyml">1. Создание docker-compose.yml</h2>
+<p>Создайте файл <code>docker-compose.yml</code> со следующим содержимым:</p>
+<pre><code class="language-yaml">services:
+  hearthchat:
+    image: tripod311/hearthchat:latest
+    container_name: hearthchat
+
+    network_mode: host
+
+    restart: unless-stopped
+
+    environment:
+      - HTTP_PORT=443
+      - GATE_PORT=14567
+      - PORT_BASE=45000
+      - PORT_RANGE=999
+
+    volumes:
+      - ./data:/app/data
 </code></pre>
 <hr />
-<h2 id="_3">Конфигурация</h2>
-<p>Настройки задаются в файле <code>docker-compose.yml</code>.</p>
-<h3 id="_4">Переменные окружения</h3>
+<h2 id="2">2. Настройка портов</h2>
+<p>Вы можете изменить порты при необходимости:</p>
 <ul>
-<li><code>HTTP_PORT</code> — порт HTTP(S)-сервера (веб-интерфейс)</li>
-<li><code>GATE_PORT</code> — порт для связи между узлами</li>
-<li><code>PORT_BASE</code>, <code>PORT_RANGE</code> — диапазон UDP-портов для mediasoup  </li>
-<li>Рекомендуемые значения:<ul>
-<li><code>PORT_BASE=40000</code></li>
-<li><code>PORT_RANGE=1000</code></li>
+<li><strong>HTTP_PORT</strong> — порт для доступа к веб-интерфейсу  </li>
+<li><strong>GATE_PORT</strong> — TCP-порт для связи между узлами  </li>
+<li><strong>PORT_BASE / PORT_RANGE</strong> — используются для <code>mediasoup</code></li>
 </ul>
-</li>
-</ul>
+<blockquote>
+<p>Обычно их можно не трогать.<br />
+Если запускаете несколько узлов на одном хосте — лучше разделить диапазоны портов.</p>
+</blockquote>
 <hr />
-<h2 id="ssl-">SSL-сертификаты (опционально, но рекомендуется)</h2>
+<h2 id="3">3. Запуск контейнера</h2>
+<p>Запустите приложение:</p>
+<pre><code class="language-bash">docker compose up
+</code></pre>
+<p>После запуска появится папка <code>data</code> — в ней хранятся все данные узла.</p>
+<p>📦 Эту папку можно переносить между хостами (это и есть бэкап).</p>
+<hr />
+<h2 id="4">4. Первый вход</h2>
+<p>Откройте в браузере:</p>
+<pre><code>http://&lt;адрес_хоста&gt;:&lt;HTTP_PORT&gt;
+</code></pre>
+<p>Данные по умолчанию:</p>
+<ul>
+<li><strong>логин:</strong> root  </li>
+<li><strong>пароль:</strong> root  </li>
+</ul>
+<p>⚠️ Рекомендуется сразу:</p>
+<ol>
+<li>Создать нового пользователя  </li>
+<li>Войти под ним  </li>
+<li>Удалить пользователя <code>root</code></li>
+</ol>
+<hr />
+<h2 id="5-tls">5. Настройка TLS (рекомендуется)</h2>
 <p>Можно вручную добавить TLS-сертификаты.</p>
-<p>Структура:</p>
+<h3 id="_3">Структура папок:</h3>
 <pre><code>data/
   certificates/
     server.cert
     server.key
     server.ca (опционально)
 </code></pre>
-<p>Если сертификаты не заданы:</p>
+<h3 id="_4">Если сертификаты не заданы:</h3>
 <ul>
-<li>браузер будет показывать предупреждения</li>
-<li>голосовой и видеочат могут работать некорректно</li>
+<li>браузер будет показывать предупреждения  </li>
+<li>голосовой и видеочат могут работать некорректно  </li>
 </ul>
 <hr />
-<h2 id="_5">Запуск сервера</h2>
-<p>Запустите:</p>
-<pre><code class="language-bash">docker compose up
-</code></pre>
-<p>При успешном запуске:</p>
-<ul>
-<li>HTTP и Gate серверы начнут слушать порты</li>
-<li>появится папка <code>data/</code> с:</li>
-<li><code>database.sqlite</code></li>
-<li><code>files/</code></li>
-<li><code>tmp/</code></li>
-</ul>
-<hr />
-<h2 id="_6">Первый вход</h2>
-<p>Откройте в браузере:</p>
-<pre><code>https://your-domain:your-port
-</code></pre>
-<p>Данные по умолчанию:</p>
-<ul>
-<li>логин: <code>root</code></li>
-<li>пароль: <code>root</code></li>
-</ul>
-<p>⚠️ Рекомендуется изменить пароль или удалить пользователя root.</p>
-<hr />
-<h2 id="_7">Административная панель</h2>
-<h3 id="node">Вкладка Node</h3>
-<ul>
-<li>Настройка имени и описания узла</li>
-<li>Редактирование главной страницы (в формате JSON)</li>
-</ul>
-<p>Пример:</p>
-<pre><code class="language-json">[
-  {
-    &quot;type&quot;: &quot;text&quot;,
-    &quot;data&quot;: {
-      &quot;title&quot;: &quot;Центр управления&quot;,
-      &quot;text&quot;: &quot;Пишите баги и фичи в чат с пометкой @push.&quot;
-    }
-  },
-  {
-    &quot;type&quot;: &quot;refs&quot;,
-    &quot;data&quot;: [
-      {
-        &quot;link&quot;: &quot;/self/topic/1&quot;,
-        &quot;title&quot;: &quot;Болталка&quot;,
-        &quot;description&quot;: &quot;общедоступный топик&quot;
-      }
-    ]
-  }
-]
-</code></pre>
-<hr />
-<h3 id="_8">Настройка голосового чата</h3>
-<p>Для работы голоса и видео:</p>
-<ul>
-<li>Укажите <code>announced_ip</code> (публичный IP сервера)</li>
-<li>Задайте ICE candidates</li>
-</ul>
-<p>Пример:</p>
-<pre><code class="language-json">[
-  {
-    &quot;urls&quot;: &quot;stun:stun.l.google.com:19302&quot;
-  },
-  {
-    &quot;urls&quot;: &quot;turn:openrelay.metered.ca:80&quot;,
-    &quot;username&quot;: &quot;openrelayproject&quot;,
-    &quot;credential&quot;: &quot;openrelayproject&quot;
-  }
-]
-</code></pre>
-<hr />
-<h3 id="_9">Важные замечания</h3>
-<p>При изменении следующих параметров:</p>
-<ul>
-<li><code>HTTP_PORT</code></li>
-<li><code>GATE_PORT</code></li>
-<li><code>announced_ip</code></li>
-<li><code>iceCandidates</code></li>
-</ul>
-<p>необходимо перезапустить сервер.</p>
-<p>⚠️ Связи в федерации могут разорваться — потребуется повторное подключение узлов.</p>
-<hr />
-<h3 id="users">Вкладка Users</h3>
-<ul>
-<li>Создание, редактирование и удаление пользователей</li>
-<li>Генерация ссылок-приглашений (<code>Create Invite</code>)</li>
-</ul>
-<p>Рекомендуется:</p>
-<ul>
-<li>изменить пароль root  </li>
-<li>или создать нового администратора и удалить root  </li>
-</ul>
-<hr />
-<h3 id="actors">Вкладка Actors</h3>
-<ul>
-<li>Просмотр пользователей, проходивших через узел</li>
-<li>Блокировка / разблокировка</li>
-</ul>
-<p>Заблокированные пользователи:</p>
-<ul>
-<li>могут проходить через узел</li>
-<li>не могут читать топики и использовать чат</li>
-</ul>
-<hr />
-<h3 id="topics">Вкладка Topics</h3>
-<ul>
-<li>Просмотр, редактирование и удаление топиков</li>
-</ul>
-<hr />
-<h3 id="related">Вкладка Related</h3>
-<ul>
-<li>Управление связями с другими узлами</li>
-<li>Отправка handshake-запросов</li>
-</ul>
-<p>Для подключения:
-1. Введите адрес узла (например <code>https://some-node.io:port</code>)
-2. Добавьте сообщение (опционально)
-3. Нажмите <strong>Send</strong></p>
-<hr />
-<h2 id="_10">Запуск в фоне</h2>
-<p>После настройки:</p>
+<h2 id="6">6. Фоновый режим</h2>
+<p>После первоначального запуска можно остановить контейнер и запустить его в фоне:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
 <hr />
-<h2 id="_11">Перенос узла</h2>
-<p>Для переноса:</p>
-<ol>
-<li>Скопируйте папку <code>data/</code> на новый сервер  </li>
-<li>Запустите Hearthchat  </li>
-<li>Обновите <code>announced_ip</code> в админке  </li>
-<li>Удалите старые связанные узлы  </li>
-<li>Отправьте новые handshake-запросы  </li>
-</ol>
+<h2 id="_5">Примечания</h2>
+<ul>
+<li>Все данные хранятся в папке <code>data</code></li>
+<li>Перенос узла = копирование этой папки</li>
+<li>Бэкап = архив <code>data</code></li>
+</ul>
+<h1 id="_6">Установка из исходников</h1>
+<h2 id="docker-">Сборка Docker-образа из исходников</h2>
+<p>⚠️ <strong>Не рекомендуется для слабых хостов</strong></p>
+<p>Сборка может зависать или выполняться очень долго, так как при <code>npm install</code> библиотека <code>mediasoup</code> может запускать собственную сборку нативных зависимостей, что сильно нагружает систему.</p>
 <hr />
-<h2 id="_12">Готово</h2>
-<p>Узел Hearthchat готов к использованию.</p>
+<h3 id="1">1. Клонирование репозитория</h3>
+<pre><code class="language-bash">git clone https://github.com/Tripod311/hearth_chat
+</code></pre>
+<p>Данная команда скачивает исходный код проекта с GitHub на ваш компьютер.</p>
+<p>После выполнения появится директория <code>hearth_chat</code> с проектом.</p>
+<hr />
+<h3 id="2-docker-">2. Сборка Docker-образа</h3>
+<pre><code class="language-bash">docker build -t tripod311/hearthchat:latest .
+</code></pre>
+<p>Эта команда:</p>
+<ul>
+<li>собирает Docker-образ из исходников</li>
+<li>использует текущую директорию (контекст сборки)</li>
+<li>присваивает образу тег <code>tripod311/hearthchat:latest</code></li>
+</ul>
+<p>⏳ Процесс может занять значительное время в зависимости от мощности хоста.</p>
+<hr />
+<h2 id="docker">Запуск из исходников (без Docker)</h2>
+<p>Если вы не хотите использовать Docker, приложение можно запустить напрямую как Node.js-сервис.</p>
+<p>В этом случае:</p>
+<ul>
+<li>папка <code>data</code> будет автоматически создана в рабочей директории проекта</li>
+<li>все данные будут храниться локально рядом с приложением</li>
+</ul>
+<hr />
+<h3 id="_7">Требования</h3>
+<ul>
+<li><strong>Node.js версии 20 или выше</strong></li>
+</ul>
+<hr />
+<h3 id="1_1">1. Клонирование репозитория</h3>
+<pre><code class="language-bash">git clone https://github.com/Tripod311/hearth_chat
+</code></pre>
+<p>Скачивает исходный код проекта.</p>
+<hr />
+<h3 id="2_1">2. Установка зависимостей</h3>
+<pre><code class="language-bash">npm install
+</code></pre>
+<p>Устанавливает все необходимые зависимости, указанные в <code>package.json</code>.</p>
+<p>⚠️ На этом этапе также может происходить сборка <code>mediasoup</code>, что может занять время.</p>
+<hr />
+<h3 id="3_1">3. Сборка клиентской части</h3>
+<pre><code class="language-bash">npx vite build
+</code></pre>
+<p>Собирает фронтенд-приложение (интерфейс) в оптимизированный production-бандл.</p>
+<hr />
+<h3 id="4_1">4. Компиляция серверной части</h3>
+<pre><code class="language-bash">npx tsc
+</code></pre>
+<p>Компилирует TypeScript-код сервера в JavaScript.</p>
+<p>Результат сборки помещается в директорию <code>server_dist</code>.</p>
+<hr />
+<h3 id="5">5. Запуск приложения</h3>
+<pre><code class="language-bash">node server_dist/main.js
+</code></pre>
+<p>Запускает сервер Hearthchat.</p>
+<p>После запуска приложение будет доступно по указанному в конфигурации порту.</p>
+<hr />
+<h2 id="_8">Примечания</h2>
+<ul>
+<li>При первом запуске автоматически создаётся папка <code>data</code></li>
+<li>Все пользовательские данные, файлы и настройки хранятся в ней</li>
+<li>Для переноса узла достаточно скопировать папку <code>data</code></li>
+</ul>
 
 
 
