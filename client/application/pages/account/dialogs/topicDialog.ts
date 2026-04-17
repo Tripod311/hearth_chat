@@ -1,6 +1,8 @@
 import { Component } from "@tripod311/splash"
 import View from "./topicDialog.html?raw"
 
+import Model from "../../../../model/main.js"
+
 export default class TopicDialog extends Component {
 	protected static componentName = "TopicDialog";
 	protected static template = View;
@@ -9,7 +11,17 @@ export default class TopicDialog extends Component {
 		super.mounted();
 
 		this.refs.okButton.onclick = this.onOk.bind(this);
+		this.refs.okButton.innerText = Model.getPipe("locale.getLocalized").run("common.ok");
 		this.refs.cancelButton.onclick = this.onCancel.bind(this);
+		this.refs.cancelButton.innerText = Model.getPipe("locale.getLocalized").run("common.cancel");
+
+		this.state.update({
+			"title-loc": Model.getPipe("locale.getLocalized").run("topicInfo.title"),
+			"description-loc": Model.getPipe("locale.getLocalized").run("topicInfo.description"),
+			"guest-loc": Model.getPipe("locale.getLocalized").run("topicInfo.guest_access"),
+			"password-loc": Model.getPipe("locale.getLocalized").run("topicInfo.password_protected"),
+			"author-loc": Model.getPipe("locale.getLocalized").run("topicInfo.author_write_only")
+		});
 
 		if (this.state.getProp("data")) {
 			this.refs.title.value = this.state.getProp("data").title;

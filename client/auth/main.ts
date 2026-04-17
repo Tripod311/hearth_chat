@@ -11,12 +11,35 @@ export default class Auth extends Component {
 	protected static template = View;
 
 	private modals: Modals = new Modals();
+	private localeListener: () => void;
+
+	constructor (options: Record<string, any>) {
+		super(options);
+
+		this.localeListener = this.updateLocale.bind(this);
+	}
 
 	mounted () {
 		super.mounted();
 
 		this.slots.modals.push(this.modals);
 		this.refs.button.onclick = this.handleSubmit.bind(this);
+
+		Model.getPipe("locale.current").on(this.localeListener);
+
+		this.updateLocale();
+	}
+
+	unmounted () {
+		Model.getPipe("locale.current").off(this.localeListener);
+
+		super.unmounted();
+	}
+
+	updateLocale () {
+		this.refs.button.innerText = Model.getPipe("locale.getLocalized").run("common.enter");
+		this.refs.loginTitle.innerText = Model.getPipe("locale.getLocalized").run("common.login");
+		this.refs.passwordTitle.innerText = Model.getPipe("locale.getLocalized").run("common.password");
 	}
 
 	async handleSubmit () {

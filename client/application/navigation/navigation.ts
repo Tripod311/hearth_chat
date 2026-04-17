@@ -6,10 +6,21 @@ export default class Navigation extends Component {
 	protected static componentName = "Navigation";
 	protected static template = View;
 
+	private adminListener: () => void;
+	private localeListener: () => void;
+
+	constructor (options: Record<string, any>) {
+		super(options);
+
+		this.adminListener = this.adminChange.bind(this);
+		this.localeListener = this.updateLocale.bind(this);
+	}
+
 	mounted () {
 		super.mounted();
 
-		Model.getPipe("settings.isAdmin").on(this.adminChange.bind(this));
+		Model.getPipe("settings.isAdmin").on(this.adminListener);
+		Model.getPipe("locale.current").on(this.localeListener);
 
 		this.refs.account.onclick = this.goToAccount.bind(this);
 		this.refs.title.onclick = this.goToTitle.bind(this);
@@ -19,11 +30,28 @@ export default class Navigation extends Component {
 		this.refs.admin.onclick = this.goToAdmin.bind(this);
 
 		this.adminChange();
+		this.updateLocale();
+	}
+
+	unmounted () {
+		Model.getPipe("settings.isAdmin").off(this.adminListener);
+		Model.getPipe("locale.current").off(this.localeListener);
+
+		super.unmounted();
 	}
 
 	adminChange () {
 		if (!Model.getPipe("settings.isAdmin").data) this.refs.admin.style.display = "none";
 		else this.refs.admin.style.display = "block";
+	}
+
+	updateLocale () {
+		this.refs.account.innerText = Model.getPipe("locale.getLocalized").run("navigation.account");
+		this.refs.admin.innerText = Model.getPipe("locale.getLocalized").run("navigation.admin");
+		this.refs.home.innerText = Model.getPipe("locale.getLocalized").run("navigation.home");
+		this.refs.title.innerText = Model.getPipe("locale.getLocalized").run("navigation.title");
+		this.refs.topics.innerText = Model.getPipe("locale.getLocalized").run("navigation.topics");
+		this.refs.related.innerText = Model.getPipe("locale.getLocalized").run("navigation.related");
 	}
 
 	get nodeId (): string {

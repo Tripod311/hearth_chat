@@ -13,6 +13,8 @@ export default class ActorInfoDialog extends Component {
 		if (Model.getPipe("settings.isAdmin").data && Model.getPipe("settings.currentNode").data === "self") {
 			this.refs.ban.onclick = this.ban.bind(this);
 			this.refs.unban.onclick = this.unban.bind(this);
+			this.refs.ban.innerText = Model.getPipe("locale.getLocalized").run("admin.ban");
+			this.refs.unban.innerText = Model.getPipe("locale.getLocalized").run("admin.unban");
 		} else {
 			this.refs.ban.style.display = "none";
 			this.refs.unban.style.display = "none";
@@ -48,9 +50,9 @@ export default class ActorInfoDialog extends Component {
 				}
 			})
 		} else {
-			this.refs.node_title.innerText = "Node: " + response.data.node_title;
-			this.refs.display_name.innerText = "Name: " + response.data.display_name;
-			this.refs.is_banned.innerText = response.data.is_banned ? "Banned" : "";
+			this.refs.node_title.innerText = Model.getPipe("locale.getLocalized").run("common.node") + ": " + response.data.node_title;
+			this.refs.display_name.innerText = Model.getPipe("locale.getLocalized").run("common.name") + ": " + response.data.display_name;
+			this.refs.is_banned.innerText = response.data.is_banned ? Model.getPipe("locale.getLocalized").run("admin.banned") : "";
 		}
 	}
 

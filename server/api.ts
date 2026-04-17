@@ -33,6 +33,7 @@ import getNodeSettings from "./api/node/getNodeSettings.js"
 import setNodeSettings from "./api/node/setNodeSettings.js"
 import fetchVapid from "./api/node/fetchVapid.js"
 import fetchNodeTitle from "./api/node/fetchNodeTitle.js"
+import fetchLocales from "./api/node/locales.js"
 
 import nodeHandshake from "./api/related/nodeHandshake.js"
 import fetchRelated from "./api/related/fetchRelated.js"
@@ -260,6 +261,10 @@ export default class API extends Node {
 			verify.bind(this),
 			JsonBody,
 			fetchNodeTitle.bind(this)
+		]));
+
+		this.instance.get("/locales", this.baseChain.concat([
+			fetchLocales.bind(this)
 		]));
 
 		// ws setup

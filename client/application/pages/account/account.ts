@@ -28,9 +28,14 @@ export default class AccountPage extends Component {
 	mounted () {
 		super.mounted();
 
+		this.refs.nameTitle.innerText = Model.getPipe("locale.getLocalized").run("account.display_name");
 		this.refs.changeName.onclick = this.changeName.bind(this);
+		this.refs.changeName.innerText = Model.getPipe("locale.getLocalized").run("account.change_name");
 		this.refs.changePassword.onclick = this.changePassword.bind(this);
+		this.refs.changePassword.innerText = Model.getPipe("locale.getLocalized").run("account.change_password");
 		this.refs.createTopic.onclick = this.createTopic.bind(this);
+		this.refs.createTopic.innerText = Model.getPipe("locale.getLocalized").run("account.create_topic");
+		this.refs.topicsTitle.innerText = Model.getPipe("locale.getLocalized").run("account.my_topics");
 
 		this.fetchData();
 	}
@@ -79,7 +84,16 @@ export default class AccountPage extends Component {
 			this.data = response.data as TopicInfo[];
 
 			for (let index = 0; index<this.data.length; index++) {
-				const drop = TemplateCache.createDrop("topicDescription", this.data[index]);
+				const drop = TemplateCache.createDrop("topicDescription", Object.assign({
+					"title-loc": Model.getPipe("locale.getLocalized").run("topicInfo.title"),
+					"description-loc": Model.getPipe("locale.getLocalized").run("topicInfo.description"),
+					"guest-loc": Model.getPipe("locale.getLocalized").run("topicInfo.guest_access"),
+					"password-loc": Model.getPipe("locale.getLocalized").run("topicInfo.password_protected"),
+					"author-loc": Model.getPipe("locale.getLocalized").run("topicInfo.author_write_only"),
+					"enter-loc": Model.getPipe("locale.getLocalized").run("common.enter"),
+					"edit-loc": Model.getPipe("locale.getLocalized").run("common.edit"),
+					"delete-loc": Model.getPipe("locale.getLocalized").run("common.delete")
+				}, this.data[index]));
 				drop.refs.enter.onclick = this.enterTopic.bind(this, index);
 				drop.refs.edit.onclick = this.editTopic.bind(this, index);
 				drop.refs.delete.onclick = this.deleteTopic.bind(this, index);
@@ -132,7 +146,7 @@ export default class AccountPage extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Successfully changed",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
 						buttonValue: "Ok"
 					});
 					Model.getPipe("modals.showDialog").run(notification);
@@ -160,7 +174,7 @@ export default class AccountPage extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Successfully created",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
 						buttonValue: "Ok",
 						callback: () => {
 							this.fetchTopics();
@@ -198,7 +212,7 @@ export default class AccountPage extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Successfully updated",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
 						buttonValue: "Ok",
 						callback: () => {
 							this.fetchTopics();
@@ -213,7 +227,7 @@ export default class AccountPage extends Component {
 
 	deleteTopic (index: number) {
 		const dlg = Model.getPipe("modals.createPrompt").run({
-			message: "Are you sure?",
+			message: Model.getPipe("locale.getLocalized").run("common.confirm"),
 			callback: async () => {
 				const id = this.data[index].id;
 
@@ -232,7 +246,7 @@ export default class AccountPage extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Successfully deleted",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
 						buttonValue: "Ok",
 						callback: () => {
 							this.fetchTopics();

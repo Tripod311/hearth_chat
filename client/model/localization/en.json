@@ -1,0 +1,62 @@
+{
+	"common": {
+		"login": "Login",
+		"password": "Password",
+		"ok": "Ok",
+		"cancel": "Cancel",
+		"close": "Close",
+		"delete": "Delete",
+		"enter": "Enter",
+		"edit": "Edit",
+		"node": "Node",
+		"name": "Name",
+		"success": "Success",
+		"confirm": "Are you sure?"
+	},
+	"invite": {
+		"accept": "Accept invitation",
+		"redirect": "I already have an account"
+	},
+	"navigation": {
+		"account": "My Account",
+		"admin": "Admin panel",
+		"home": "Go home",
+		"title": "Title page",
+		"topics": "Topics",
+		"related": "Related Nodes"
+	},
+	"topics": {
+		"details": "Details",
+		"password_protected": "Password protected",
+		"guest_access": "Only locals allowed",
+		"author_write_only": "Only author can write"
+	},
+	"related": {
+		"title": "Related nodes: "
+	},
+	"chat": {
+		"connect": "Connect",
+		"connecting": "Connecting...",
+		"disconnect": "Disconnect",
+		"connectedUsers": "Connected users:"
+	},
+	"account": {
+		"display_name": "Display name:",
+		"change_name": "Change name",
+		"change_password": "Change password",
+		"create_topic": "Create topic",
+		"my_topics": "My topics"
+	},
+	"topicInfo": {
+		"title": "Title: ",
+		"description": "Description: ",
+		"guest_access": "Allow guest access: ",
+		"author_write_only": "Only author can write: ",
+		"password_protected": "Password protected: "
+	},
+	"admin": {
+		"ban": "Ban",
+		"unban": "Unban",
+		"banned": "Banned"
+	}
+}

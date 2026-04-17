@@ -11,6 +11,8 @@ export default class RelatedPage extends Component {
 		super.mounted();
 
 		this.fetchNodes();
+
+		this.refs.relatedTitle.innerText = Model.getPipe("locale.getLocalized").run("related.title");
 	}
 
 	async fetchNodes () {

@@ -98,10 +98,10 @@ export default class VoiceChat extends Component {
 	toggleConnection () {
 		if (this.state.getProp("controls").connected) {
 			this.state.getProp("controls").deleteTransport();
-			this.refs.connect.innerText = "Connect";
+			this.refs.connect.innerText = Model.getPipe("locale.getLocalized").run("chat.connect");
 		} else {
 			this.state.getProp("controls").createTransport();
-			this.refs.connect.innerText = "Connecting...";
+			this.refs.connect.innerText = Model.getPipe("locale.getLocalized").run("chat.connecting");
 		}
 	}
 
@@ -137,13 +137,13 @@ export default class VoiceChat extends Component {
 		const controls = this.state.getProp("controls");
 
 		if (controls.connected) {
-			this.refs.connect.innerText = "Disconnect";
+			this.refs.connect.innerText = Model.getPipe("locale.getLocalized").run("chat.disconnect");
 			this.refs.voice.style.display = "block";
 			this.refs.video.style.display = "block";
 			this.refs.voice.src = controls.audioTrack ? MicIcon : NoMicIcon;
 			this.refs.video.src = controls.videoTrack ? CamIcon : NoCamIcon;
 		} else {
-			this.refs.connect.innerText = "Connect"
+			this.refs.connect.innerText = Model.getPipe("locale.getLocalized").run("chat.connect");
 			this.refs.voice.style.display = "none";
 			this.refs.video.style.display = "none";
 		}
@@ -158,7 +158,7 @@ export default class VoiceChat extends Component {
 		const controls = this.state.getProp("controls");
 		const state = controls.state;
 
-		this.refs.connectedCount.innerText = `Connected users: ${Object.keys(state).length}`;
+		this.refs.connectedCount.innerText = `${Model.getPipe("locale.getLocalized").run("chat.connectedUsers")} ${Object.keys(state).length}`;
 	}
 
 	fillAudio () {

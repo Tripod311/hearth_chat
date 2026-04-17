@@ -16,6 +16,8 @@ export default class TopicBlock extends Component {
 
 		this.refs.container.onclick = this.enter.bind(this);
 
+		this.refs.detailsTitle.innerText = Model.getPipe("locale.getLocalized").run("topics.details");
+
 		if (this.state.getProp("password_protected")) {
 			const block = document.createElement("div");
 			block.className = "flex flex-row items-center gap-2";
@@ -23,7 +25,7 @@ export default class TopicBlock extends Component {
 			img.src = LockIcon;
 			img.className = "w-[20px] h-[20px]";
 			const content = document.createElement("span");
-			content.innerText = "Password protected";
+			content.innerText = Model.getPipe("locale.getLocalized").run("topics.password_protected");
 			block.appendChild(img);
 			block.appendChild(content);
 			this.refs.features.appendChild(block);
@@ -36,7 +38,7 @@ export default class TopicBlock extends Component {
 			img.src = HomeIcon;
 			img.className = "w-[20px] h-[20px]";
 			const content = document.createElement("span");
-			content.innerText = "Only locals allowed";
+			content.innerText = Model.getPipe("locale.getLocalized").run("topics.guest_access");
 			block.appendChild(img);
 			block.appendChild(content);
 			this.refs.features.appendChild(block);
@@ -49,7 +51,7 @@ export default class TopicBlock extends Component {
 			img.src = EyeIcon;
 			img.className = "w-[20px] h-[20px]";
 			const content = document.createElement("span");
-			content.innerText = "Only author can write";
+			content.innerText = Model.getPipe("locale.getLocalized").run("topics.author_write_only");
 			block.appendChild(img);
 			block.appendChild(content);
 			this.refs.features.appendChild(block);

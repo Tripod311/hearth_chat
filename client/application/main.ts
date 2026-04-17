@@ -7,6 +7,7 @@ import MenuIcon from "../icons/menu.svg"
 import BellIcon from "../icons/bell-ringing.svg"
 import BellCrossIcon from "../icons/bell-cross.svg"
 import LogoutIcon from "../icons/logout.svg"
+import LocaleSelector from "./localeSelector/component.js"
 
 import Modals from "../modals/modals.js"
 import SpinnerDialog from "../modals/dialogs/spinnerDialog.js"
@@ -29,6 +30,7 @@ export default class Application extends Component {
 
 	private nodeId!: string;
 	private modals: Modals = new Modals({});
+	private localeSelector: LocaleSelector = new LocaleSelector({});
 	private navExpanded: boolean = false;
 	private currentPage: string = "";
 
@@ -38,6 +40,7 @@ export default class Application extends Component {
 		this.nodeId = Model.getPipe("settings.currentNode").data;
 
 		this.slots.modals.push(this.modals);
+		this.slots.localeSelector.push(this.localeSelector);
 
 		this.state.on("page", this.verify.bind(this));
 
