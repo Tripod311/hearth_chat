@@ -244,4 +244,23 @@ After startup, the application will be available on the configured port.
 
 - On first run, the `data` folder is created automatically  
 - All user data, files, and settings are stored there  
-- To migrate a node, simply copy the `data` folder  
+- To migrate a node, simply copy the `data` folder
+
+# Localization
+
+## Existing Localizations
+
+English is available by default everywhere. Existing locale files can be found in the locales folder in the source code. To add an additional language to a node, create a locales folder inside the data directory and place the desired locale file there. English does not need to be installed, as it is included by default.
+
+Example:
+
+```
+data/
+  locales/
+    ru.json
+    fr.json
+```
+
+## Custom Localizations
+
+You can easily create a locale for your own language — just take the English locale file and translate all the text in it. This can be done quickly and conveniently using AI tools. Installation is the same as for existing localizations.

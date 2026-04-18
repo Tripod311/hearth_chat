@@ -1,6 +1,11 @@
+### Hearthchat 1.0.2
+
+- Improved videchat UI
+- Localization files
+
 ### Hearthchat 1.0.1
 
-Improved file transfer for better experience
+- Improved file transfer for better experience
 
 ### Hearthchat 1.0.0
 

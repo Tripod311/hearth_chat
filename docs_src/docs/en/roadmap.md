@@ -2,6 +2,6 @@
 
 ## Upcoming Features
 
-- Localization files
-- Bot API  
+- Bot API
+- Load balancing between CPU cores
 - User-to-user private chats  

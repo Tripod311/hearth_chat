@@ -1,0 +1,109 @@
+{
+	"common": {
+		"login": "Login",
+		"password": "Password",
+		"repeatPassword": "Repeat password",
+		"ok": "Ok",
+		"cancel": "Cancel",
+		"close": "Close",
+		"delete": "Delete",
+		"enter": "Enter",
+		"edit": "Edit",
+		"node": "Node",
+		"name": "Name",
+		"success": "Success",
+		"confirm": "Are you sure?",
+		"next": "Next",
+		"prev": "Prev",
+		"search": "Search",
+		"submit": "Submit"
+	},
+	"invite": {
+		"accept": "Accept invitation",
+		"redirect": "I already have an account"
+	},
+	"navigation": {
+		"account": "My Account",
+		"admin": "Admin panel",
+		"home": "Go home",
+		"title": "Title page",
+		"topics": "Topics",
+		"related": "Related Nodes"
+	},
+	"topics": {
+		"details": "Details",
+		"password_protected": "Password protected",
+		"guest_access": "Only locals allowed",
+		"author_write_only": "Only author can write"
+	},
+	"related": {
+		"title": "Related nodes: "
+	},
+	"chat": {
+		"connect": "Connect",
+		"connecting": "Connecting...",
+		"disconnect": "Disconnect",
+		"connectedUsers": "Connected users:"
+	},
+	"account": {
+		"display_name": "Display name:",
+		"change_name": "Change name",
+		"change_password": "Change password",
+		"create_topic": "Create topic",
+		"my_topics": "My topics"
+	},
+	"topicInfo": {
+		"title": "Title: ",
+		"description": "Description: ",
+		"guest_access": "Allow guest access: ",
+		"author_write_only": "Only author can write: ",
+		"password_protected": "Password protected: ",
+		"creator": "Creator: "
+	},
+	"admin": {
+		"ban": "Ban",
+		"unban": "Unban",
+		"banned": "Banned",
+		"is_admin": "Is admin",
+		"is_bot": "Is bot",
+		"last_login": "Last login",
+		"nodeTab": "Node",
+		"usersTab": "Users",
+		"actorsTab": "Actors",
+		"topicsTab": "Topics",
+		"relatedTab": "Related"
+	},
+	"admin_node": {
+		"title": "Node title",
+		"description": "Node description",
+		"title_page": "Title page content",
+		"http_port": "HTTP port (manual restart required)",
+		"gate_port": "Gate port (manual restart required)",
+		"ice_candidates": "ICE Candidates (manual restart required)",
+		"announced_ip": "Announced ip (manual restart required)"
+	},
+	"admin_user": {
+		"createInvite": "Create invite",
+		"createUser": "Create user",
+		"editUser": "Edit user",
+		"setPassword": "Set password",
+		"deleteUser": "Delete selected",
+		"inviteMessage": "Invite link (click to copy)"
+	},
+	"admin_actor": {
+		"nodeId": "Node id",
+		"nodeTitle": "Node title",
+		"actorId": "Actor id",
+		"actorName": "Actor name"
+	},
+	"admin_related": {
+		"handshakeMessage": "Handshake message",
+		"sendHandshake": "Send handshake",
+		"nodeAddress": "Node address",
+		"relateRequest": "New relate request",
+		"accept": "Accept",
+		"decline": "Decline",
+		"copyLink": "Copy link",
+		"forget": "Forget"
+	}
+}
