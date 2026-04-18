@@ -11,6 +11,16 @@ export default async function addLocalization (model: Pump) {
 	
 	const currentLocale = new StoragePipe<string>();
 	localeRoot.addPipe("current", currentLocale);
+	currentLocale.on(() => {
+		localStorage.setItem("locale", currentLocale.data);
+	});
+
+	const storedLocale = localStorage.getItem("locale");
+	if (!storedLocale) {
+		currentLocale.data = window.navigator.language.slice(0, 2).toLowerCase();
+	} else {
+		currentLocale.data = storedLocale;
+	}
 
 	const available = new StoragePipe<string[]>();
 	localeRoot.addPipe("available", available);
@@ -42,8 +52,6 @@ export default async function addLocalization (model: Pump) {
 		for (const name in data.data) {
 			locales[name] = data.data[name];
 		}
-
-		currentLocale.data = window.navigator.language.slice(0, 2).toLowerCase();
 	} catch (err: any) {
 		console.error(`Can't fetch locales: ${err.toString()}`);
 	}

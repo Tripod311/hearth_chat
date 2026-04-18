@@ -13,6 +13,7 @@ export default class LocaleSelector extends Component {
 		super(options);
 
 		this.listener = this.listChange.bind(this);
+		this.refs.content.onchange = this.handleChange.bind(this);
 	}
 
 	mounted () {
@@ -38,7 +39,14 @@ export default class LocaleSelector extends Component {
 			const elem = document.createElement("option");
 			elem.value = l;
 			elem.innerText = l;
+			elem.className = "border border-default text-primary bg-primary"
 			this.refs.content.appendChild(elem);
 		}
+
+		this.refs.content.value = Model.getPipe("locale.current").data;
+	}
+
+	handleChange () {
+		Model.getPipe("locale.current").data = this.refs.content.value;
 	}
 }

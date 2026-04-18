@@ -26,11 +26,22 @@ export default class ActorsTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			nodeId: Model.getPipe("locale.getLocalized").run("admin_actor.nodeId"),
+			nodeTitle: Model.getPipe("locale.getLocalized").run("admin_actor.nodeTitle"),
+			actorId: Model.getPipe("locale.getLocalized").run("admin_actor.actorId"),
+			actorName: Model.getPipe("locale.getLocalized").run("admin_actor.actorName"),
+			banned: Model.getPipe("locale.getLocalized").run("admin.banned")
+		});
+
 		this.refs.toggleBan.onclick = this.toggleBan.bind(this);
 
 		this.refs.prev.onclick = this.prevPage.bind(this);
+		this.refs.prev.innerText = Model.getPipe("locale.getLocalized").run("common.prev");
 		this.refs.next.onclick = this.nextPage.bind(this);
+		this.refs.next.innerText = Model.getPipe("locale.getLocalized").run("common.next");
 		this.refs.search.onclick = this.search.bind(this);
+		this.refs.search.innerText = Model.getPipe("locale.getLocalized").run("common.search");
 
 		this.fetchActors();
 	}
@@ -97,7 +108,7 @@ export default class ActorsTab extends Component {
 			this.data[this.selectedRow].element!.style.background = "rgba(50, 50, 50)";
 
 			this.refs.toggleBan.style.display = "block";
-			this.refs.toggleBan.innerText = this.data[this.selectedRow].is_banned ? "Unban" : "Ban";
+			this.refs.toggleBan.innerText = this.data[this.selectedRow].is_banned ? Model.getPipe("locale.getLocalized").run("admin.unban") : Model.getPipe("locale.getLocalized").run("admin.ban");
 		} else {
 			this.refs.toggleBan.style.display = "none";
 		}

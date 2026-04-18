@@ -10,6 +10,17 @@ export default class NodeTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			"title": Model.getPipe("locale.getLocalized").run("admin_node.title"),
+			"description": Model.getPipe("locale.getLocalized").run("admin_node.description"),
+			"title_page": Model.getPipe("locale.getLocalized").run("admin_node.title_page"),
+			"http_port": Model.getPipe("locale.getLocalized").run("admin_node.http_port"),
+			"gate_port": Model.getPipe("locale.getLocalized").run("admin_node.gate_port"),
+			"ice_candidates": Model.getPipe("locale.getLocalized").run("admin_node.ice_candidates"),
+			"announced_ip": Model.getPipe("locale.getLocalized").run("admin_node.announced_ip"),
+			"submit": Model.getPipe("locale.getLocalized").run("common.submit"),
+		});
+
 		this.refs.submit.onclick = this.submitSettings.bind(this);
 
 		this.fetchSettings();

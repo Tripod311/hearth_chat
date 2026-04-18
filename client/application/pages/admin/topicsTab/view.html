@@ -1,21 +1,21 @@
 <div class="w-full h-full p-4 overflow-auto">
 	<div class="w-full flex flex-row gap-2 p-2 mb-6">
-		<div data-ref="edit" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Edit selected</div>
-		<div data-ref="delete" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Delete selected</div>
+		<div data-ref="edit" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden"></div>
+		<div data-ref="delete" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden"></div>
 	</div>
 	<div class="w-full flex flex-col gap-2">
 		<div class="w-full flex flex-row gap-2 items-center">
-			<input data-ref="filter" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl grow" placeholder="Filter by name or creator" />
-			<div data-ref="search" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Filter</div>
+			<input data-ref="filter" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl grow" />
+			<div data-ref="search" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
 		</div>
 		<table class="min-w-full border border-default border-collapse">
 			<thead class="font-bold [&>tr>th]:border [&>tr>th]:border-default [&>tr>th]:p-2">
 				<tr>
-					<th>ID</th>
-					<th>Title</th>
-					<th>Creator</th>
-					<th>Guests allowed</th>
-					<th>Password protected</th>
+					<th data-text="id"></th>
+					<th data-text="title"></th>
+					<th data-text="creator"></th>
+					<th data-text="guest_access"></th>
+					<th data-text="password_protected"></th>
 				</tr>
 			</thead>
 			<tbody data-ref="tbody" class="[&>tr>td]:border [&>tr>td]:border-default [&>tr>td]:p-2 [&>tr>td]:truncate">

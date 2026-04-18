@@ -29,15 +29,30 @@ export default class UsersTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			login: Model.getPipe("locale.getLocalized").run("common.login"),
+			is_admin: Model.getPipe("locale.getLocalized").run("admin.is_admin"),
+			is_bot: Model.getPipe("locale.getLocalized").run("admin.is_bot"),
+			last_login: Model.getPipe("locale.getLocalized").run("admin.last_login")
+		});
+
 		this.refs.createInvite.onclick = this.createInvite.bind(this);
+		this.refs.createInvite.innerText = Model.getPipe("locale.getLocalized").run("admin_user.createInvite");
 		this.refs.createUser.onclick = this.createUser.bind(this);
+		this.refs.createUser.innerText = Model.getPipe("locale.getLocalized").run("admin_user.createUser");
 		this.refs.editUser.onclick = this.editUser.bind(this);
+		this.refs.editUser.innerText = Model.getPipe("locale.getLocalized").run("admin_user.editUser");
 		this.refs.setPassword.onclick = this.setPassword.bind(this);
+		this.refs.setPassword.innerText = Model.getPipe("locale.getLocalized").run("admin_user.setPassword");
 		this.refs.deleteUser.onclick = this.deleteUser.bind(this);
+		this.refs.deleteUser.innerText = Model.getPipe("locale.getLocalized").run("admin_user.deleteUser");
 
 		this.refs.prev.onclick = this.prevPage.bind(this);
+		this.refs.prev.innerText = Model.getPipe("locale.getLocalized").run("common.prev");
 		this.refs.next.onclick = this.nextPage.bind(this);
+		this.refs.next.innerText = Model.getPipe("locale.getLocalized").run("common.next");
 		this.refs.search.onclick = this.search.bind(this);
+		this.refs.search.innerText = Model.getPipe("locale.getLocalized").run("common.search");
 
 		this.fetchUsers();
 	}
@@ -236,7 +251,7 @@ export default class UsersTab extends Component {
 		const login = this.data[this.selectedRow].login;
 
 		const prompt = Model.getPipe("modals.createPrompt").run({
-			message: `Delete user ${login}?`,
+			message: `${Model.getPipe("locale.getLocalized").run("common.delete")} ${login}?`,
 			callback: async (password: string) => {
 				const spinner = Model.getPipe("modals.createSpinner").run();
 				Model.getPipe("modals.showDialog").run(spinner);
@@ -253,8 +268,8 @@ export default class UsersTab extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Deleted",
-						buttonValue: "Ok",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
+						buttonValue: Model.getPipe("locale.getLocalized").run("common.ok"),
 						callback: () => {
 							this.selectRow(-1);
 							this.fetchUsers();

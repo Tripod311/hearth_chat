@@ -1,6 +1,8 @@
 import { Component } from "@tripod311/splash"
 import View from "./createUserDialog.html?raw"
 
+import Model from "../../../../../model/main.js"
+
 export default class CreateUserDialog extends Component {
 	protected static componentName = "CreateUserDialog";
 	protected static template = View;
@@ -8,8 +10,15 @@ export default class CreateUserDialog extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			loginTitle: Model.getPipe("locale.getLocalized").run("common.login"),
+			passwordTitle: Model.getPipe("locale.getLocalized").run("common.password")
+		});
+
 		this.refs.okButton.onclick = this.onOk.bind(this);
+		this.refs.okButton.innerText = Model.getPipe("locale.getLocalized").run("common.ok");
 		this.refs.cancelButton.onclick = this.onCancel.bind(this);
+		this.refs.cancelButton.innerText = Model.getPipe("locale.getLocalized").run("common.cancel");
 	}
 
 	transitionReady () {

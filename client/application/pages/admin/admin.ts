@@ -1,6 +1,8 @@
 import { Component } from "@tripod311/splash"
 import View from "./admin.html?raw"
 
+import Model from "../../../model/main.js"
+
 import NodeTab from "./nodeTab/component.js"
 import UsersTab from "./usersTab/component.js"
 import TopicsTab from "./topicsTab/component.js"
@@ -17,10 +19,15 @@ export default class AdminPage extends Component {
 		super.mounted();
 
 		this.refs.node.onclick = this.setTab.bind(this, "node");
+		this.refs.node.innerText = Model.getPipe("locale.getLocalized").run("admin.nodeTab");
 		this.refs.users.onclick = this.setTab.bind(this, "users");
+		this.refs.users.innerText = Model.getPipe("locale.getLocalized").run("admin.usersTab");
 		this.refs.actors.onclick = this.setTab.bind(this, "actors");
+		this.refs.actors.innerText = Model.getPipe("locale.getLocalized").run("admin.actorsTab");
 		this.refs.topics.onclick = this.setTab.bind(this, "topics");
+		this.refs.topics.innerText = Model.getPipe("locale.getLocalized").run("admin.topicsTab");
 		this.refs.related.onclick = this.setTab.bind(this, "related");
+		this.refs.related.innerText = Model.getPipe("locale.getLocalized").run("admin.relatedTab");
 
 		this.setTab("node")
 	}

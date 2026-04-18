@@ -5,24 +5,24 @@
 	<div class="w-full flex flex-col gap-2">
 		<div class="w-full flex flex-row gap-2 items-center">
 			<input data-ref="filter" type="text" class="w-full p-2 border border-default bg-white text-black rounded-xl grow" />
-			<div data-ref="search" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Search</div>
+			<div data-ref="search" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
 		</div>
 		<table class="min-w-full border border-default border-collapse">
 			<thead class="font-bold [&>tr>th]:border [&>tr>th]:border-default [&>tr>th]:p-2">
 				<tr>
-					<th>Node id</th>
-					<th>Node title</th>
-					<th>Actor id</th>
-					<th>Actor name</th>
-					<th>Banned</th>
+					<th data-text="nodeId"></th>
+					<th data-text="nodeTitle"></th>
+					<th data-text="actorId"></th>
+					<th data-text="actorName"></th>
+					<th data-text="banned"></th>
 				</tr>
 			</thead>
 			<tbody data-ref="tbody" class="[&>tr>td]:border [&>tr>td]:border-default [&>tr>td]:p-2 [&>tr>td]:truncate">
 			</tbody>
 		</table>
 		<div class="w-full flex flex-row gap-2 justify-between items-center">
-			<div data-ref="prev" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Prev</div>
-			<div data-ref="next" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Next</div>
+			<div data-ref="prev" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
+			<div data-ref="next" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
 		</div>
 	</div>
 </div>

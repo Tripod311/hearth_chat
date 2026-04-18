@@ -95,6 +95,13 @@ export default class Application extends Component {
 			Model.getPipe("settings.currentNode").data = "self";
 			Model.getPipe("router").run("auth");
 		} else {
+			const sp = window.location.pathname.split("/");
+			if (sp.length > 2) {
+				Model.getPipe("settings.currentNode").data = sp[1];
+			} else {
+				Model.getPipe("settings.currentNode").data = "self";
+			}
+
 			Model.getPipe("settings.username").data = result.userInfo.login;
 			Model.getPipe("settings.isAdmin").data = result.userInfo.is_admin;
 

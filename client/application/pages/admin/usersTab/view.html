@@ -1,10 +1,10 @@
 <div class="w-full h-full p-4 overflow-auto">
 	<div class="w-full flex flex-row gap-2 p-2 mb-6">
-		<div data-ref="createInvite" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Create invite</div>
-		<div data-ref="createUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Create user</div>
-		<div data-ref="editUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Edit user</div>
-		<div data-ref="setPassword" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Set password</div>
-		<div data-ref="deleteUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden">Delete selected</div>
+		<div data-ref="createInvite" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
+		<div data-ref="createUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
+		<div data-ref="editUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden"></div>
+		<div data-ref="setPassword" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden"></div>
+		<div data-ref="deleteUser" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none hidden"></div>
 	</div>
 	<div class="w-full flex flex-col gap-2">
 		<div class="w-full flex flex-row gap-2 items-center">
@@ -14,18 +14,18 @@
 		<table class="min-w-full border border-default border-collapse">
 			<thead class="font-bold [&>tr>th]:border [&>tr>th]:border-default [&>tr>th]:p-2">
 				<tr>
-					<th>login</th>
-					<th>is_admin</th>
-					<th>is_bot</th>
-					<th>last_login</th>
+					<th data-text="login"></th>
+					<th data-text="is_admin"></th>
+					<th data-text="is_bot"></th>
+					<th data-text="last_login"></th>
 				</tr>
 			</thead>
 			<tbody data-ref="tbody" class="[&>tr>td]:border [&>tr>td]:border-default [&>tr>td]:p-2 [&>tr>td]:truncate">
 			</tbody>
 		</table>
 		<div class="w-full flex flex-row gap-2 justify-between items-center">
-			<div data-ref="prev" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Prev</div>
-			<div data-ref="next" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none">Next</div>
+			<div data-ref="prev" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
+			<div data-ref="next" class="p-2 rounded bg-hover text-white border-default cursor-pointer border border-strong select-none"></div>
 		</div>
 	</div>
 </div>

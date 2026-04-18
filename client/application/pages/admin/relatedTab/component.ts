@@ -14,7 +14,14 @@ export default class RelatedTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			nodeAddress: Model.getPipe("locale.getLocalized").run("admin_related.nodeAddress"),
+			handshakeMessage: Model.getPipe("locale.getLocalized").run("admin_related.handshakeMessage"),
+			relatedTitle: Model.getPipe("locale.getLocalized").run("navigation.related")
+		})
+
 		this.refs.handshake.onclick = this.sendHandshake.bind(this);
+		this.refs.handshake.innerText = Model.getPipe("locale.getLocalized").run("admin_related.sendHandshake");
 
 		this.fetchNodes();
 		this.fetchHandshakes();
@@ -40,8 +47,11 @@ export default class RelatedTab extends Component {
 			for (const n of response.data) {
 				const drop = TemplateCache.createDrop("relatedNodeView", { uuid: n.uuid, title: n.title, description: n.description });
 				drop.refs.copyLink.onclick = this.copyLink.bind(this, n.uuid);
+				drop.refs.copyLink.innerText = Model.getPipe("locale.getLocalized").run("admin_related.copyLink");
 				drop.refs.enter.onclick = this.enter.bind(this, n.uuid);
+				drop.refs.enter.innerText = Model.getPipe("locale.getLocalized").run("common.enter");
 				drop.refs.forget.onclick = this.forgetNode.bind(this, n.uuid);
+				drop.refs.forget.innerText = Model.getPipe("locale.getLocalized").run("admin_related.forget");
 				this.slots.nodes.push(Component.generic({}, drop.node));
 			}
 		}
@@ -65,7 +75,12 @@ export default class RelatedTab extends Component {
 			this.slots.handshakes.clear();
 
 			for (const n of response.data) {
-				const drop = TemplateCache.createDrop("handshakeView", { message: n.message });
+				const drop = TemplateCache.createDrop("handshakeView", {
+					title: Model.getPipe("locale.getLocalized").run("admin_related.relateRequest"),
+					accept: Model.getPipe("locale.getLocalized").run("admin_related.accept"),
+					decline: Model.getPipe("locale.getLocalized").run("admin_related.decline"),
+					message: n.message
+				});
 				drop.refs.accept.onclick = this.acceptHandshake.bind(this, n.id);
 				drop.refs.decline.onclick = this.rejectHandshake.bind(this, n.id);
 				this.slots.handshakes.push(Component.generic({}, drop.node));

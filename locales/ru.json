@@ -1,3 +1,109 @@
 {
-	
+  "common": {
+    "login": "Логин",
+    "password": "Пароль",
+    "repeatPassword": "Повторите пароль",
+    "ok": "Ок",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "delete": "Удалить",
+    "enter": "Войти",
+    "edit": "Редактировать",
+    "node": "Узел",
+    "name": "Имя",
+    "success": "Успешно",
+    "confirm": "Вы уверены?",
+    "next": "Далее",
+    "prev": "Назад",
+    "search": "Поиск",
+    "submit": "Отправить"
+  },
+  "invite": {
+    "accept": "Принять приглашение",
+    "redirect": "У меня уже есть аккаунт"
+  },
+  "navigation": {
+    "account": "Мой аккаунт",
+    "admin": "Админ-панель",
+    "home": "На главную",
+    "title": "Главная страница",
+    "topics": "Чаты",
+    "related": "Связанные узлы"
+  },
+  "topics": {
+    "details": "Детали",
+    "password_protected": "Защищено паролем",
+    "guest_access": "Только локальные пользователи",
+    "author_write_only": "Только автор может писать"
+  },
+  "related": {
+    "title": "Связанные узлы: "
+  },
+  "chat": {
+    "connect": "Подключиться",
+    "connecting": "Подключение...",
+    "disconnect": "Отключиться",
+    "connectedUsers": "Подключенные пользователи:"
+  },
+  "account": {
+    "display_name": "Отображаемое имя:",
+    "change_name": "Сменить имя",
+    "change_password": "Сменить пароль",
+    "create_topic": "Создать чат",
+    "my_topics": "Мои чаты"
+  },
+  "topicInfo": {
+    "title": "Название: ",
+    "description": "Описание: ",
+    "guest_access": "Разрешить гостевой доступ: ",
+    "author_write_only": "Только автор может писать: ",
+    "password_protected": "Защищено паролем: ",
+    "creator": "Создатель: "
+  },
+  "admin": {
+    "ban": "Забанить",
+    "unban": "Разбанить",
+    "banned": "Забанен",
+    "is_admin": "Администратор",
+    "is_bot": "Бот",
+    "last_login": "Последний вход",
+    "nodeTab": "Узел",
+    "usersTab": "Пользователи",
+    "actorsTab": "Акторы",
+    "topicsTab": "Чаты",
+    "relatedTab": "Связанные"
+  },
+  "admin_node": {
+    "title": "Название узла",
+    "description": "Описание узла",
+    "title_page": "Контент главной страницы",
+    "http_port": "HTTP порт (требуется ручной перезапуск)",
+    "gate_port": "Gate порт (требуется ручной перезапуск)",
+    "ice_candidates": "ICE кандидаты (требуется ручной перезапуск)",
+    "announced_ip": "Публичный IP (требуется ручной перезапуск)"
+  },
+  "admin_user": {
+    "createInvite": "Создать приглашение",
+    "createUser": "Создать пользователя",
+    "editUser": "Редактировать пользователя",
+    "setPassword": "Установить пароль",
+    "deleteUser": "Удалить выбранного",
+    "inviteMessage": "Ссылка-приглашение (нажмите, чтобы скопировать)"
+  },
+  "admin_actor": {
+    "nodeId": "ID узла",
+    "nodeTitle": "Название узла",
+    "actorId": "ID актора",
+    "actorName": "Имя актора"
+  },
+  "admin_related": {
+    "handshakeMessage": "Сообщение к запросу на связь",
+    "sendHandshake": "Отправить запрос на связь",
+    "nodeAddress": "Адрес узла",
+    "relateRequest": "Новый запрос на связь",
+    "accept": "Принять",
+    "decline": "Отклонить",
+    "copyLink": "Скопировать ссылку",
+    "forget": "Забыть"
+  }
 }

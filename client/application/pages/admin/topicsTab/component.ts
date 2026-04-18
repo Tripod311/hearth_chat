@@ -21,9 +21,20 @@ export default class TopicsTab extends Component {
 	mounted () {
 		super.mounted();
 
+		this.state.update({
+			"id": "ID",
+			"title": Model.getPipe("locale.getLocalized").run("topicInfo.title"),
+			"creator": Model.getPipe("locale.getLocalized").run("topicInfo.creator"),
+			"guest_access": Model.getPipe("locale.getLocalized").run("topicInfo.guest_access"),
+			"password_protected": Model.getPipe("locale.getLocalized").run("topicInfo.password_protected")
+		})
+
 		this.refs.edit.onclick = this.editSelected.bind(this);
+		this.refs.edit.innerText = Model.getPipe("locale.getLocalized").run("common.edit");
 		this.refs.delete.onclick = this.deleteSelected.bind(this);
+		this.refs.delete.innerText = Model.getPipe("locale.getLocalized").run("common.delete");
 		this.refs.search.onclick = this.filterChange.bind(this);
+		this.refs.search.innerText = Model.getPipe("locale.getLocalized").run("common.search");
 
 		this.fetchTopics();
 	}
@@ -79,7 +90,7 @@ export default class TopicsTab extends Component {
 
 	deleteSelected () {
 		const prompt = Model.getPipe("modals.createPrompt").run({
-			message: `Delete topic?`,
+			message: `${Model.getPipe("locale.getLocalized").run("common.delete")}?`,
 			callback: async (password: string) => {
 				const spinner = Model.getPipe("modals.createSpinner").run();
 				Model.getPipe("modals.showDialog").run(spinner);
@@ -96,8 +107,8 @@ export default class TopicsTab extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Deleted",
-						buttonValue: "Ok",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
+						buttonValue: Model.getPipe("locale.getLocalized").run("common.ok"),
 						callback: () => {
 							this.selectRow(-1);
 							this.fetchTopics();
@@ -131,8 +142,8 @@ export default class TopicsTab extends Component {
 					Model.getPipe("modals.showDialog").run(notification);
 				} else {
 					const notification = Model.getPipe("modals.createNotification").run({
-						message: "Successfully updated",
-						buttonValue: "Ok",
+						message: Model.getPipe("locale.getLocalized").run("common.success"),
+						buttonValue: Model.getPipe("locale.getLocalized").run("common.ok"),
 						callback: () => {
 							this.fetchTopics();
 						}
