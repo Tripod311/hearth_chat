@@ -2,7 +2,7 @@ import { Context, SetCookie } from "@tripod311/currents"
 import { Node, Event } from "@tripod311/dispatch"
 
 export default async function logout (this: Node, ctx: Context) {
-	SetCookie(ctx, "hearthchat_token", "", {
+	await SetCookie(ctx, "hearthchat_token", "", {
 		httpOnly: true,
 		sameSite: "Strict",
 		maxAge: 0

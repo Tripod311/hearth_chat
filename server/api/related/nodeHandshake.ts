@@ -10,7 +10,7 @@ export default function nodeHandshake (this: Node, ctx: Context): Promise<void> 
 		const dbAddress = this.address!.parent.data;
 		dbAddress.push("db");
 
-		const ip = ctx.raw.httpVersion === 1 ? ctx.raw.req.socket.remoteAddress : ctx.raw.stream?.session?.socket.remoteAddress;
+		const ip = ctx.raw.rawHTTP.version === 1 ? ctx.raw.rawHTTP.req.socket.remoteAddress : ctx.raw.rawHTTP.stream?.session?.socket.remoteAddress;
 
 		this.chain(dbAddress, {
 			command: "nodeHandshake",

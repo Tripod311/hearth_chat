@@ -13,12 +13,12 @@ export default function verify (this: Node, ctx: Context): Promise<void> {
 			data: {
 				token: token
 			}
-		}, (response: Event) => {
+		}, async (response: Event) => {
 			if (response.data.error) {
 				ctx.status(403).json({ error: true, details: "Access forbidden" });
 			} else {
 				if (response.data.data.refreshToken) {
-					SetCookie(ctx, "hearthchat_token", response.data.data.refreshToken, {
+					await SetCookie(ctx, "hearthchat_token", response.data.data.refreshToken, {
 						httpOnly: true,
 						sameSite: "Strict",
 						maxAge: 60 * 60 * 24,

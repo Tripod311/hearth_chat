@@ -3,7 +3,7 @@ import path from "path"
 import FS from "fs"
 import { Socket } from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
-import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context } from "@tripod311/currents"
+import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context, NodeAdapter } from "@tripod311/currents"
 import type { CorsOptions, CurrentsOptions, RouteHandler } from "@tripod311/currents"
 import { WebSocketServer, WebSocket } from "ws"
 import { parse } from "url"
@@ -372,10 +372,10 @@ export default class API extends Node {
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		this.instance.server.on("upgrade", this.handleUpgrade.bind(this));
-		this.instance.server.on("connection", this.rememberSocket.bind(this));
+		(this.instance.adapter as NodeAdapter).server.on("upgrade", this.handleUpgrade.bind(this));
+		(this.instance.adapter as NodeAdapter).server.on("connection", this.rememberSocket.bind(this));
 
-		this.instance.server.listen(this.port, () => {
+		(this.instance.adapter as NodeAdapter).server.listen(this.port, () => {
 			Log.success("Node listening on " + this.port, 0);
 		});
 	}
@@ -394,7 +394,7 @@ export default class API extends Node {
 		}
 
 		this.wsServer.close();
-		this.instance.server.close();
+		(this.instance.adapter as NodeAdapter).server.close();
 
 		super.detach();
 	}

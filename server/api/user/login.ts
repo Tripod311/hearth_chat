@@ -21,11 +21,11 @@ export default function login (this: Node, ctx: Context): Promise<void> {
 				this.chain(accessAddress, {
 					command: "generateToken",
 					data: dbResponse.data.data
-				}, (accessResponse: Event) => {
+				}, async (accessResponse: Event) => {
 					if (accessResponse.data.error) {
 						ctx.status(500).json({ error: true, details: "Internal error: " + accessResponse.data.details });
 					} else {
-						SetCookie(ctx, "hearthchat_token", accessResponse.data.data.token, {
+						await SetCookie(ctx, "hearthchat_token", accessResponse.data.data.token, {
 							httpOnly: true,
 							sameSite: "Strict",
 							maxAge: 60 * 60 * 24,
