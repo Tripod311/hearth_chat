@@ -1,5 +1,6 @@
 import path from "path"
-import { Context, ServeStatic } from "@tripod311/currents"
+import { Context } from "@tripod311/currents"
+import { ServeStatic } from "@tripod311/currents/node"
 import { Node, Event } from "@tripod311/dispatch"
 import type API from "../../api.js"
 

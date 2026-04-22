@@ -14,7 +14,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@tripod311/currents": "^0.0.12",
+    "@tripod311/currents": "^0.1.0",
     "@tripod311/dispatch": "^0.0.14",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",

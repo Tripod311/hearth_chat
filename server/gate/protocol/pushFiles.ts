@@ -2,7 +2,7 @@ import FS from "fs"
 import crypto from "crypto"
 import { Log } from "@tripod311/dispatch"
 import type { EventData, Event } from "@tripod311/dispatch"
-import { StreamingMultipartFile } from "@tripod311/currents"
+import { StreamingMultipartFile } from "@tripod311/currents/node"
 import type NodeConnection from "../nodeConnection.js"
 import { waitFileSize } from "../utils.js"
 

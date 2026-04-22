@@ -3,8 +3,10 @@ import path from "path"
 import FS from "fs"
 import { Socket } from "net"
 import { Node, Dispatcher, Address, Event, Log } from "@tripod311/dispatch"
-import { Currents, ParseCookies, Cors, SecurityHeaders, ServeStatic, JsonBody, StreamingMultipartBody, Context, NodeAdapter } from "@tripod311/currents"
-import type { CorsOptions, CurrentsOptions, RouteHandler } from "@tripod311/currents"
+import { Currents, ParseCookies, Cors, SecurityHeaders, JsonBody, Context } from "@tripod311/currents"
+import { NodeAdapter, StreamingMultipartBody, ServeStatic } from "@tripod311/currents/node"
+import type { CorsOptions, RouteHandler } from "@tripod311/currents"
+import type { CurrentsOptions } from "@tripod311/currents/node"
 import { WebSocketServer, WebSocket } from "ws"
 import { parse } from "url"
 
@@ -91,10 +93,10 @@ export default class API extends Node {
 		this.uuid = uuid;
 		this.port = port;
 
-		this.instance = Currents.fromOptions({
+		this.instance = new Currents(NodeAdapter.fromOptions({
 			forceHTTPVersion: 1,
 			certificates: this.fetchCertificates()
-		});
+		}));
 
 		this.baseChain = [
 			SecurityHeaders({
