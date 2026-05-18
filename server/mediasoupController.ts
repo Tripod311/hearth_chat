@@ -8,7 +8,7 @@ interface IceCandidate {
 
 export default class MediasoupController {
 	public static announced_ip: string | undefined;
-	public static ice_candidates: IceCandidate[] | undefined;
+	public static ice_candidates: IceCandidate[] = [];
 	public static codecs: any = [
 		{
 			kind: "audio",
