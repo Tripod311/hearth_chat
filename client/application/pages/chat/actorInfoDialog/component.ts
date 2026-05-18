@@ -20,6 +20,7 @@ export default class ActorInfoDialog extends Component {
 			this.refs.unban.style.display = "none";
 		}
 
+		this.refs.close.innerText = Model.getPipe("locale.getLocalized").run("common.close");
 		this.refs.close.onclick = this.emit.bind(this, "close");
 
 		this.fetchInfo();

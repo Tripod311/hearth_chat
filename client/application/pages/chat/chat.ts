@@ -191,7 +191,7 @@ export default class ChatPage extends Component {
 		}
 
 		while (this.slots.messages.length > ChatPage.LIMIT) {
-			this.slots.messages.unshift();
+			this.slots.messages.shift();
 			this.atStart = false;
 		}
 
@@ -296,7 +296,7 @@ export default class ChatPage extends Component {
 
 		await this.voiceControls.createDevice();
 		await this.voiceControls.load(data.rtpCapabilities);
-		if (data.iceServers) this.voiceControls.iceServers = JSON.parse(data.iceServers);
+		if (data.iceServers) this.voiceControls.iceServers = data.iceServers;
 		this.voiceChat.selfId = this.topicInfo.selfId;
 		this.voiceControls.selfId = this.topicInfo.selfId;
 		this.voiceControls.mediaUpdate(data.mediaState);

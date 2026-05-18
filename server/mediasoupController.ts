@@ -1,8 +1,14 @@
 import mediasoup from "mediasoup"
 
+interface IceCandidate {
+	urls: string[];
+	username?: string;
+	credential?: string;
+}
+
 export default class MediasoupController {
 	public static announced_ip: string | undefined;
-	public static ice_candidates: string | undefined;
+	public static ice_candidates: IceCandidate[] | undefined;
 	public static codecs: any = [
 		{
 			kind: "audio",
@@ -30,7 +36,16 @@ export default class MediasoupController {
 	private static worker?: mediasoup.types.Worker;
 	private static routers: Record<number, mediasoup.types.Router> = {};
 
-	static async setup () {
+	static async setup (announced_ip: string | undefined, ice_candidates: string | undefined) {
+		MediasoupController.announced_ip = announced_ip;
+		if (ice_candidates !== undefined) {
+			const data = JSON.parse(ice_candidates);
+
+			if (data !== null) {
+				MediasoupController.ice_candidates = data as IceCandidate[];
+			}
+		}
+
 		const portBase = process.env.PORT_BASE ? parseInt(process.env.PORT_BASE) : 40000;
 		const portRange = process.env.PORT_RANGE ? parseInt(process.env.PORT_RANGE) : 9999;
 

@@ -37,9 +37,7 @@ export default class Root extends Node {
 		this.uploadsTracker = new UploadsTracker();
 		console.log("Self id: " + this.db.uuid);
 
-		MediasoupController.announced_ip = this.db.mediasoupParams.announced_ip;
-		MediasoupController.ice_candidates = this.db.mediasoupParams.ice_candidates;
-		MediasoupController.setup();
+		MediasoupController.setup(this.db.mediasoupParams.announced_ip, this.db.mediasoupParams.ice_candidates);
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
