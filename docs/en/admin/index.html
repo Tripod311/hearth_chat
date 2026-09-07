@@ -63,6 +63,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#admin-guide" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -329,6 +334,26 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administrator manual
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -346,6 +371,102 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#node-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voice-chat-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voice Chat Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#important-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#users-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Users Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actors-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actors Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#topics-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -626,6 +747,93 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#node-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voice-chat-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voice Chat Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#important-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#users-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Users Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actors-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actors Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#topics-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topics Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Tab
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -642,9 +850,118 @@
 
 
 
-  <h1>Administrator manual</h1>
-
-
+<h1 id="admin-guide">Admin Guide</h1>
+<h3 id="node-tab">Node Tab</h3>
+<ul>
+<li>Configure the node name and description</li>
+<li>Edit the home page (in JSON format)</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json">[
+  {
+    &quot;type&quot;: &quot;text&quot;,
+    &quot;data&quot;: {
+      &quot;title&quot;: &quot;HearthChat node&quot;,
+      &quot;text&quot;: &quot;Example of HearthChat node&quot;
+    }
+  },
+  {
+    &quot;type&quot;: &quot;image&quot;,
+    &quot;data&quot;: {
+      &quot;src&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;&quot;,
+      &quot;caption&quot;: &quot;Some image&quot;
+    }
+  },
+  {
+    &quot;type&quot;: &quot;refs&quot;,
+    &quot;data&quot;: [
+      {
+        &quot;link&quot;: &quot;&quot;,
+        &quot;title&quot;: &quot;Welcome topic&quot;,
+        &quot;description&quot;: &quot;Introduce yourself&quot;
+      },
+      {
+        &quot;link&quot;: &quot;&quot;,
+        &quot;title&quot;: &quot;Max'x node&quot;,
+        &quot;description&quot;: &quot;Meet my brother&quot;
+      }
+    ]
+  },
+  {
+    &quot;type&quot;: &quot;divider&quot;
+  },
+  {
+    &quot;type&quot;: &quot;custom&quot;,
+    &quot;data&quot;: {
+      &quot;content&quot;: &quot;&lt;span class=\&quot;text-4xl\&quot;&gt;Custom span&lt;/div&gt;&quot;
+    }
+  }
+]
+</code></pre>
+<hr />
+<h3 id="voice-chat-configuration">Voice Chat Configuration</h3>
+<p>To enable voice and video:</p>
+<ul>
+<li>Specify <code>announced_ip</code> (the server's public IP address)</li>
+<li>Configure the ICE candidates</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json">[
+  {
+    &quot;urls&quot;: &quot;stun:stun.l.google.com:19302&quot;
+  },
+  {
+    &quot;urls&quot;: &quot;turn:openrelay.metered.ca:80&quot;,
+    &quot;username&quot;: &quot;openrelayproject&quot;,
+    &quot;credential&quot;: &quot;openrelayproject&quot;
+  }
+]
+</code></pre>
+<hr />
+<h3 id="important-notes">Important Notes</h3>
+<p>The server must be restarted after changing any of the following parameters:</p>
+<ul>
+<li><code>HTTP_PORT</code></li>
+<li><code>GATE_PORT</code></li>
+<li><code>announced_ip</code></li>
+<li><code>iceCandidates</code></li>
+</ul>
+<p>⚠️ Federation connections may be interrupted, requiring the nodes to be reconnected.</p>
+<hr />
+<h3 id="users-tab">Users Tab</h3>
+<ul>
+<li>Create, edit, and delete users</li>
+<li>Generate invitation links (<code>Create Invite</code>)</li>
+</ul>
+<hr />
+<h3 id="actors-tab">Actors Tab</h3>
+<ul>
+<li>View users who have passed through the node</li>
+<li>Block or unblock users</li>
+</ul>
+<p>Blocked users:</p>
+<ul>
+<li>can pass through the node</li>
+<li>cannot read topics or use the chat</li>
+</ul>
+<hr />
+<h3 id="topics-tab">Topics Tab</h3>
+<ul>
+<li>View, edit, and delete topics</li>
+</ul>
+<hr />
+<h3 id="related-tab">Related Tab</h3>
+<ul>
+<li>Manage connections to other nodes</li>
+<li>Send handshake requests</li>
+</ul>
+<p>To connect:</p>
+<ol>
+<li>Enter the node address (for example, <code>https://some-node.io:port</code>)</li>
+<li>Add an optional message</li>
+<li>Click <strong>Send</strong></li>
+</ol>
 
 
 

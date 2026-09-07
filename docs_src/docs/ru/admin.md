@@ -12,19 +12,41 @@
   {
     "type": "text",
     "data": {
-      "title": "Центр управления",
-      "text": "Пишите баги и фичи в чат с пометкой @push."
+      "title": "HearthChat node",
+      "text": "Example of HearthChat node"
+    }
+  },
+  {
+    "type": "image",
+    "data": {
+      "src": "",
+      "alt": "",
+      "caption": "Some image"
     }
   },
   {
     "type": "refs",
     "data": [
       {
-        "link": "/self/topic/1",
-        "title": "Болталка",
-        "description": "общедоступный топик"
+        "link": "",
+        "title": "Welcome topic",
+        "description": "Introduce yourself"
+      },
+      {
+        "link": "",
+        "title": "Max'x node",
+        "description": "Meet my brother"
       }
     ]
+  },
+  {
+    "type": "divider"
+  },
+  {
+    "type": "custom",
+    "data": {
+      "content": "<span class=\"text-4xl\">Custom span</div>"
+    }
   }
 ]
 ```
