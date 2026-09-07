@@ -71,6 +71,7 @@ export default class DB extends Node {
 	private http_port: number;
 	private announced_ip?: string | null;
 	private ice_candidates?: string | null;
+	private doSetupRoutine: boolean = false;
 
 	constructor () {
 		super();
@@ -78,7 +79,7 @@ export default class DB extends Node {
 		FS.mkdirSync("./data/files", { recursive: true });
 		FS.mkdirSync("./data/tmp", { recursive: true });
 
-		const doSetupRoutine = !FS.existsSync("./data/database.sqlite");
+		this.doSetupRoutine = !FS.existsSync("./data/database.sqlite");
 
 		this.db = new Database("./data/database.sqlite");
 		this.db.pragma("foreign_keys = ON");
@@ -86,7 +87,7 @@ export default class DB extends Node {
 		this.db.pragma("busy_timeout = 5000");
 		this.db.pragma("user_version = 0");
 
-		if (doSetupRoutine) {
+		if (this.doSetupRoutine) {
 			this.db.exec(`CREATE TABLE IF NOT EXISTS users (
 				id INTEGER PRIMARY KEY,
 				login VARCHAR(300) UNIQUE,
@@ -94,8 +95,7 @@ export default class DB extends Node {
 
 				is_admin INTEGER NOT NULL DEFAULT 0,
 				is_bot INTEGER NOT NULL DEFAULT 0,
-				last_login INTEGER,
-				quick_files TEXT
+				last_login INTEGER
 			);`);
 
 			this.db.exec(`CREATE TABLE IF NOT EXISTS actors (
@@ -211,7 +211,6 @@ export default class DB extends Node {
 				httpPort,
 				gatePort
 			]);
-			this.createRootUser();
 
 			this.node_id = nodeId;
 			this.node_title = "HearthChat Node";
@@ -233,14 +232,16 @@ export default class DB extends Node {
 		Log.success("Database initialized", 0)
 	}
 
-	async createRootUser () {
-		const login = "root";
-		const password = "root";
+	async setup () {
+		if (this.doSetupRoutine) {
+			const login = "root";
+			const password = "root";
 
-		const hash = await bcrypt.hash(password, 10);
+			const hash = await bcrypt.hash(password, 10);
 
-		const info = this.db.prepare(`INSERT INTO users (login, password, is_admin, last_login) VALUES (?, ?, 1, ?)`).run([login, hash, Math.floor(Date.now() / 1000)]);
-		this.db.prepare(`INSERT INTO actors (node_user_id, display_name) VALUES (?, ?)`).run([info.lastInsertRowid, login]);
+			const info = this.db.prepare(`INSERT INTO users (login, password, is_admin, last_login) VALUES (?, ?, 1, ?)`).run([login, hash, Math.floor(Date.now() / 1000)]);
+			this.db.prepare(`INSERT INTO actors (node_user_id, display_name) VALUES (?, ?)`).run([info.lastInsertRowid, login]);
+		}
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {

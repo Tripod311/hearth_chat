@@ -14,8 +14,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@tripod311/currents": "^0.1.0",
+    "@tripod311/currents": "^0.2.0",
     "@tripod311/dispatch": "^0.0.14",
+    "@tripod311/flow": "^0.1.0",
+    "@tripod311/pump": "^0.1.1",
+    "@tripod311/splash": "^0.1.0",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "jsonwebtoken": "^9.0.3",
@@ -25,9 +28,6 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.0",
-    "@tripod311/flow": "^0.0.1",
-    "@tripod311/pump": "^0.0.0",
-    "@tripod311/splash": "^0.0.15",
     "@types/bcrypt": "^6.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.10",

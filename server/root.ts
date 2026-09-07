@@ -43,13 +43,18 @@ export default class Root extends Node {
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		this.addChild("db", this.db);
-		this.addChild("api", this.api);
-		this.addChild("access", this.access);
-		this.addChild("gate", this.gate);
-		this.addChild("invites", this.invites);
-		this.addChild("topics", this.topicManager);
-		this.addChild("uploadsTracker", this.uploadsTracker);
+		this.db.setup().then(() => {
+			this.addChild("db", this.db);
+			this.addChild("api", this.api);
+			this.addChild("access", this.access);
+			this.addChild("gate", this.gate);
+			this.addChild("invites", this.invites);
+			this.addChild("topics", this.topicManager);
+			this.addChild("uploadsTracker", this.uploadsTracker);
+		}, (err: any) => {
+			console.error(`DB setup error: ${err}`);
+			process.exit(1);
+		})
 	}
 
 	detach () {

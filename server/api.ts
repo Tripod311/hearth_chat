@@ -140,7 +140,7 @@ export default class API extends Node {
 		]));
 
 		this.instance.post("/api/login", this.baseChain.concat([
-			JsonBody,
+			JsonBody(),
 			login.bind(this)
 		]));
 
@@ -150,31 +150,31 @@ export default class API extends Node {
 
 		this.instance.post("/api/getUsers", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			getUsers.bind(this)
 		]));
 
 		this.instance.post("/api/setPassword", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			setPassword.bind(this)
 		]));
 
 		this.instance.post("/api/addUser", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			addUser.bind(this)
 		]));
 
 		this.instance.post("/api/deleteUser", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			deleteUser.bind(this)
 		]));
 
 		this.instance.post("/api/editUser", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			editUser.bind(this)
 		]));
 
@@ -184,7 +184,7 @@ export default class API extends Node {
 		]));
 
 		this.instance.post("/api/acceptInvite", this.baseChain.concat([
-			JsonBody,
+			JsonBody(),
 			acceptInvite.bind(this)
 		]));
 
@@ -195,7 +195,7 @@ export default class API extends Node {
 
 		this.instance.post("/api/displayName", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			setDisplayName.bind(this)
 		]));
 
@@ -213,19 +213,19 @@ export default class API extends Node {
 
 		this.instance.post("/api/createTopic", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			createTopic.bind(this)
 		]));
 
 		this.instance.post("/api/updateTopic", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			updateTopic.bind(this)
 		]));
 
 		this.instance.post("/api/deleteTopic", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			deleteTopic.bind(this)
 		]));
 
@@ -239,7 +239,7 @@ export default class API extends Node {
 
 		this.instance.post("/api/titlePage", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			fetchTitlePage.bind(this)
 		]));
 
@@ -250,7 +250,7 @@ export default class API extends Node {
 
 		this.instance.post("/api/nodeSettings", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			setNodeSettings.bind(this)
 		]));
 
@@ -261,7 +261,7 @@ export default class API extends Node {
 
 		this.instance.post("/api/nodeTitle", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			fetchNodeTitle.bind(this)
 		]));
 
@@ -273,14 +273,14 @@ export default class API extends Node {
 
 		this.instance.post("/api/requestWS", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			this.requestWS.bind(this)
 		]));
 
 		// related
 
 		this.instance.post("/api/handshake", this.baseChain.concat([
-			JsonBody,
+			JsonBody(),
 			nodeHandshake.bind(this)
 		]));
 
@@ -296,31 +296,31 @@ export default class API extends Node {
 
 		this.instance.post("/api/acceptHandshake", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			acceptHandshake.bind(this)
 		]));
 
 		this.instance.post("/api/rejectHandshake", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			rejectHandshake.bind(this)
 		]));
 
 		this.instance.post("/api/sendHandshake", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			sendHandshake.bind(this)
 		]));
 
 		this.instance.post("/api/forgetRelated", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			forgetRelated.bind(this)
 		]));
 
 		this.instance.post("/api/goTo", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			goTo.bind(this)
 		]));
 
@@ -328,13 +328,13 @@ export default class API extends Node {
 
 		this.instance.post("/api/addPush", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			addPushSubscription.bind(this)
 		]));
 
 		this.instance.post("/api/deletePush", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			deletePushSubscription.bind(this)
 		]));
 
@@ -342,25 +342,25 @@ export default class API extends Node {
 
 		this.instance.post("/api/getActors", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			getActors.bind(this)
 		]));
 
 		this.instance.post("/api/getActorInfo", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			getActorInfo.bind(this)
 		]));
 
 		this.instance.post("/api/banActor", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			banActor.bind(this)
 		]));
 
 		this.instance.post("/api/unbanActor", this.baseChain.concat([
 			verify.bind(this),
-			JsonBody,
+			JsonBody(),
 			unbanActor.bind(this)
 		]));
 
